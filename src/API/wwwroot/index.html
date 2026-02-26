@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RetroGame Tracker 🎮</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🕹️</span>
+      <span class="logo-text">RetroTracker</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-view="dashboard">📊 Dashboard</a></li>
+      <li><a href="#" class="nav-link" data-view="inventory">📦 Inventario</a></li>
+      <li><a href="#" class="nav-link" data-view="lots">🎁 Lotes</a></li>
+      <li><a href="#" class="nav-link" data-view="quick-add">⚡ Registro Rápido</a></li>
+      <li><a href="#" class="nav-link" data-view="settings">⚙️ Ajustes</a></li>
+    </ul>
+    <div class="sidebar-bottom">
+      <button class="btn-export" onclick="App.exportExcel()">📥 Exportar Excel</button>
+    </div>
+  </nav>
+
+  <!-- MOBILE HEADER -->
+  <header class="mobile-header">
+    <button class="burger" id="burgerBtn" onclick="App.toggleSidebar()">☰</button>
+    <span class="mobile-title">🕹️ RetroTracker</span>
+    <button class="btn-sm" onclick="App.showView('quick-add')">⚡</button>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ──── DASHBOARD ──── -->
+    <section id="view-dashboard" class="view active">
+      <div class="view-header">
+        <h1>Dashboard</h1>
+        <span class="subtitle" id="dash-balance-badge"></span>
+      </div>
+
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card invested">
+          <div class="stat-icon">💸</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-invested">—</div>
+            <div class="stat-label">Invertido</div>
+          </div>
+        </div>
+        <div class="stat-card revenue">
+          <div class="stat-icon">💰</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-revenue">—</div>
+            <div class="stat-label">Recuperado</div>
+          </div>
+        </div>
+        <div class="stat-card profit">
+          <div class="stat-icon">📈</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-profit">—</div>
+            <div class="stat-label">Beneficio</div>
+          </div>
+        </div>
+        <div class="stat-card balance">
+          <div class="stat-icon">🏦</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-balance">—</div>
+            <div class="stat-label">Balance Final</div>
+          </div>
+        </div>
+        <div class="stat-card stock">
+          <div class="stat-icon">🗃️</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-stock-value">—</div>
+            <div class="stat-label">Valor en Stock</div>
+          </div>
+        </div>
+        <div class="stat-card items">
+          <div class="stat-icon">🎮</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-items">—</div>
+            <div class="stat-label">Artículos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Compras vs Ventas (mensual)</h3>
+          <canvas id="chartMonthly" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Por Plataforma</h3>
+          <canvas id="chartPlatform" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="pending-section">
+        <h3>📋 Pendientes de Vender <span class="badge" id="pending-count">0</span></h3>
+        <div class="table-wrap">
+          <table class="data-table" id="pending-table">
+            <thead>
+              <tr>
+                <th>Artículo</th><th>Plataforma</th><th>Tipo</th>
+                <th>Coste</th><th>Días en Stock</th><th>Acción</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──── INVENTARIO ──── -->
+    <section id="view-inventory" class="view">
+      <div class="view-header">
+        <h1>Inventario</h1>
+        <button class="btn-primary" onclick="App.openItemModal()">+ Añadir Artículo</button>
+      </div>
+
+      <div class="filters-bar">
+        <input type="search" id="search-input" placeholder="🔍 Buscar artículo..."
+               oninput="App.loadInventory()" />
+        <select id="filter-platform" onchange="App.loadInventory()">
+          <option value="">Todas las plataformas</option>
+          <option>DS</option><option>3DS</option><option>Switch</option>
+          <option>GBA</option><option>GB</option><option>PSP</option>
+          <option>PS1</option><option>PS2</option><option>PS3</option>
+          <option>Xbox</option><option>Wii</option><option>WiiU</option>
+          <option>NES</option><option>SNES</option><option>N64</option>
+          <option>GCN</option><option>Genesis</option><option>Otro</option>
+        </select>
+        <select id="filter-type" onchange="App.loadInventory()">
+          <option value="">Todos los tipos</option>
+          <option value="Console">Consola</option>
+          <option value="VideoGame">Videojuego</option>
+          <option value="Accessory">Accesorio</option>
+        </select>
+        <select id="filter-status" onchange="App.loadInventory()">
+          <option value="">Estado: todos</option>
+          <option value="false">En Stock</option>
+          <option value="true">Vendido</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="inventory-table">
+          <thead>
+            <tr>
+              <th>Artículo</th><th>Tipo</th><th>Plataforma</th><th>Estado</th>
+              <th>Lote</th><th>Coste</th><th>Venta</th><th>Beneficio</th>
+              <th>Fecha</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ──── LOTES ──── -->
+    <section id="view-lots" class="view">
+      <div class="view-header">
+        <h1>Lotes de Compra</h1>
+        <button class="btn-primary" onclick="App.openLotModal()">+ Nuevo Lote</button>
+      </div>
+      <div id="lots-grid" class="lots-grid"></div>
+    </section>
+
+    <!-- ──── REGISTRO RÁPIDO ──── -->
+    <section id="view-quick-add" class="view">
+      <div class="view-header">
+        <h1>⚡ Registro Rápido</h1>
+        <p class="subtitle">Añade artículos rápidamente estilo Wallapop</p>
+      </div>
+
+      <div class="quick-form-card">
+        <div class="form-row">
+          <label>Nombre *
+            <input type="text" id="qa-name" placeholder="Ej: Nintendo DSi Azul" />
+          </label>
+          <label>Plataforma
+            <input type="text" id="qa-platform" placeholder="DS, Switch, 3DS…" list="platforms-list" />
+            <datalist id="platforms-list">
+              <option>DS</option><option>3DS</option><option>Switch</option>
+              <option>GBA</option><option>PSP</option><option>PS2</option>
+              <option>Wii</option><option>SNES</option>
+            </datalist>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Tipo *
+            <select id="qa-type">
+              <option value="Console">Consola</option>
+              <option value="VideoGame">Videojuego</option>
+              <option value="Accessory">Accesorio</option>
+            </select>
+          </label>
+          <label>Estado
+            <select id="qa-condition">
+              <option value="Used">Usado</option>
+              <option value="New">Nuevo</option>
+              <option value="NeedsRepair">Para Reparar</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Precio Compra (€) *
+            <input type="number" id="qa-price" step="0.01" placeholder="0.00" />
+          </label>
+          <label>Gastos Envío (€)
+            <input type="number" id="qa-shipping" step="0.01" placeholder="0.00" value="0" />
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Fecha Compra
+            <input type="date" id="qa-date" />
+          </label>
+          <label>Notas
+            <input type="text" id="qa-notes" placeholder="Wallapop, compra a..." />
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary btn-lg" onclick="App.quickAdd()">✅ Añadir al Inventario</button>
+          <button class="btn-secondary" onclick="App.quickAddAndSell()">⚡ Añadir + Vender Ahora</button>
+        </div>
+        <div id="qa-feedback" class="feedback-msg"></div>
+      </div>
+
+      <div class="quick-history">
+        <h3>Últimas adiciones</h3>
+        <div id="qa-recent" class="recent-list"></div>
+      </div>
+    </section>
+
+    <!-- ──── AJUSTES ──── -->
+    <section id="view-settings" class="view">
+      <div class="view-header"><h1>⚙️ Ajustes</h1></div>
+      <div class="settings-card">
+        <h3>Configuración Financiera</h3>
+        <label>Saldo inicial (€)
+          <input type="number" id="settings-balance" step="0.01" />
+        </label>
+        <label>Moneda
+          <input type="text" id="settings-currency" value="EUR" maxlength="3" />
+        </label>
+        <button class="btn-primary" onclick="App.saveSettings()">Guardar</button>
+        <div id="settings-feedback" class="feedback-msg"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ──── MODAL: ITEM ──── -->
+  <div class="modal-overlay" id="modal-item" onclick="App.closeModal('modal-item')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="modal-item-title">Añadir Artículo</h2>
+        <button class="modal-close" onclick="App.closeModal('modal-item')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="item-id" />
+        <div class="form-row">
+          <label>Nombre *<input type="text" id="item-name" /></label>
+          <label>Plataforma<input type="text" id="item-platform" list="platforms-list" /></label>
+        </div>
+        <div class="form-row">
+          <label>Tipo *
+            <select id="item-type">
+              <option value="Console">Consola</option>
+              <option value="VideoGame">Videojuego</option>
+              <option value="Accessory">Accesorio</option>
+            </select>
+          </label>
+          <label>Condición
+            <select id="item-condition">
+              <option value="Used">Usado</option>
+              <option value="New">Nuevo</option>
+              <option value="NeedsRepair">Para Reparar</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Precio Compra (€) *<input type="number" id="item-purchase-price" step="0.01" /></label>
+          <label>Gastos Envío (€)<input type="number" id="item-shipping" step="0.01" value="0" /></label>
+        </div>
+        <div class="form-row">
+          <label>Fecha Compra<input type="date" id="item-purchase-date" /></label>
+          <label>Lote (opcional)
+            <select id="item-lot-id">
+              <option value="">Sin lote</option>
+            </select>
+          </label>
+        </div>
+        <label>Notas<input type="text" id="item-notes" /></label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-item')">Cancelar</button>
+        <button class="btn-primary" onclick="App.saveItem()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── MODAL: VENTA ──── -->
+  <div class="modal-overlay" id="modal-sell" onclick="App.closeModal('modal-sell')">
+    <div class="modal modal-sm" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>💰 Registrar Venta</h2>
+        <button class="modal-close" onclick="App.closeModal('modal-sell')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="sell-item-name" class="sell-item-name"></p>
+        <input type="hidden" id="sell-item-id" />
+        <label>Precio de Venta (€) *
+          <input type="number" id="sell-price" step="0.01" placeholder="0.00" />
+        </label>
+        <label>Fecha de Venta
+          <input type="date" id="sell-date" />
+        </label>
+        <div id="sell-profit-preview" class="profit-preview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-sell')">Cancelar</button>
+        <button class="btn-success" onclick="App.confirmSell()">✅ Confirmar Venta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── MODAL: LOT ──── -->
+  <div class="modal-overlay" id="modal-lot" onclick="App.closeModal('modal-lot')">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>🎁 Nuevo Lote de Compra</h2>
+        <button class="modal-close" onclick="App.closeModal('modal-lot')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Nombre del Lote *<input type="text" id="lot-name" placeholder="Ej: Lote DSi + Juego" /></label>
+          <label>Fecha<input type="date" id="lot-date" /></label>
+        </div>
+        <div class="form-row">
+          <label>Precio Total Pagado (€) *
+            <input type="number" id="lot-price" step="0.01" oninput="App.recalcLotItems()" />
+          </label>
+          <label>Envío Total (€)
+            <input type="number" id="lot-shipping" step="0.01" value="0" oninput="App.recalcLotItems()" />
+          </label>
+        </div>
+        <label>Notas<input type="text" id="lot-notes" /></label>
+
+        <div class="lot-items-section">
+          <div class="lot-items-header">
+            <h4>Artículos del Lote</h4>
+            <button class="btn-sm" onclick="App.addLotItem()">+ Artículo</button>
+          </div>
+          <div id="lot-items-list"></div>
+          <div class="lot-total-info" id="lot-total-info"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-lot')">Cancelar</button>
+        <button class="btn-primary" onclick="App.saveLot()">Crear Lote</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
