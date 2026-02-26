@@ -87,6 +87,13 @@ public record LotItemRequest(
 );
 
 
+
+public record UpdateLotRequest(
+    string Name,
+    string? Notes,
+    DateTime? PurchaseDate
+);
+
 public record AddItemsToLotRequest(
     List<LotItemRequest> Items
 );

@@ -1,5 +1,5 @@
 /**
- * RetroGame Tracker — Frontend SPA
+ * Retro Tracker — Frontend SPA
  * Vanilla JS, sin dependencias externas (excepto Chart.js)
  */
 
@@ -380,6 +380,7 @@ const App = {
             <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
             <div class="lot-card-actions">
               <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id}, '${escapeHtml(lot.name)}')" title="Añadir artículo al lote">+ Artículo</button>
+              <button class="btn-icon" onclick="App.openEditLotModal(${lot.id}, '${escapeHtml(lot.name)}', '${lot.purchaseDate.split('T')[0]}', '${escapeHtml(lot.notes || '')}')" title="Editar lote">✏️</button>
               <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar lote">🗑️</button>
             </div>
           </div>
@@ -526,6 +527,37 @@ const App = {
     }
   },
 
+
+  // ── Editar lote (nombre, fecha, notas) ──
+
+  openEditLotModal(lotId, name, date, notes) {
+    document.getElementById('edit-lot-id').value = lotId;
+    document.getElementById('edit-lot-name').value = name;
+    document.getElementById('edit-lot-date').value = date;
+    document.getElementById('edit-lot-notes').value = notes;
+    App.openModal('modal-edit-lot');
+  },
+
+  async saveEditLot() {
+    const id = document.getElementById('edit-lot-id').value;
+    const name = document.getElementById('edit-lot-name').value.trim();
+    if (!name) { App.toast('El nombre es obligatorio', 'error'); return; }
+
+    const body = {
+      name,
+      notes: document.getElementById('edit-lot-notes').value,
+      purchaseDate: document.getElementById('edit-lot-date').value || null
+    };
+
+    try {
+      await App.put(`/lots/${id}`, body);
+      App.toast('Lote actualizado ✅');
+      App.closeModal('modal-edit-lot');
+      App.loadLots();
+    } catch (e) {
+      App.toast('Error actualizando lote', 'error');
+    }
+  },
 
   // ── Añadir artículos a lote existente ──
 

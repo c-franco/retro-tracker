@@ -44,6 +44,15 @@ public class LotsController : ControllerBase
     }
 
 
+
+    /// <summary>Editar nombre, fecha y notas de un lote</summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateLotRequest req)
+    {
+        var lot = await _service.UpdateAsync(id, req);
+        return lot == null ? NotFound() : Ok(lot);
+    }
+
     /// <summary>Añadir artículos a un lote existente</summary>
     [HttpPost("{id}/items")]
     public async Task<IActionResult> AddItems(int id, [FromBody] AddItemsToLotRequest req)

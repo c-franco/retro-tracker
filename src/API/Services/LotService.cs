@@ -16,14 +16,19 @@ public class LotService
         var items = lot.Items.ToList();
         var soldItems = items.Where(i => i.IsSold).ToList();
 
+        // Recalcular siempre desde los artículos reales para reflejar añadidos posteriores
+        var realPurchasePrice = items.Sum(i => i.PurchasePrice);
+        var realShippingCost  = items.Sum(i => i.ShippingCost);
+        var realTotalCost     = realPurchasePrice + realShippingCost;
+
         return new LotDto(
             lot.Id,
             lot.Name,
             lot.Notes,
             lot.PurchaseDate,
-            lot.TotalPurchasePrice,
-            lot.TotalShippingCost,
-            lot.TotalCost,
+            realPurchasePrice,
+            realShippingCost,
+            realTotalCost,
             items.Count,
             soldItems.Count,
             items.Count(i => !i.IsSold),
@@ -132,6 +137,32 @@ public class LotService
         await _db.SaveChangesAsync();
 
         var updated = await _db.Lots.Include(l => l.Items).FirstAsync(l => l.Id == lotId);
+        return ToDto(updated);
+    }
+
+    /// <summary>
+    /// Actualiza nombre, fecha y notas de un lote.
+    /// Si cambia la fecha, todos los artículos del lote heredan la nueva fecha.
+    /// </summary>
+    public async Task<LotDto?> UpdateAsync(int id, UpdateLotRequest req)
+    {
+        var lot = await _db.Lots.Include(l => l.Items).FirstOrDefaultAsync(l => l.Id == id);
+        if (lot == null) return null;
+
+        lot.Name = req.Name;
+        lot.Notes = req.Notes;
+
+        // Si la fecha cambia, propagar a todos los artículos del lote
+        if (req.PurchaseDate.HasValue && req.PurchaseDate.Value != lot.PurchaseDate)
+        {
+            lot.PurchaseDate = req.PurchaseDate.Value;
+            foreach (var item in lot.Items)
+                item.PurchaseDate = req.PurchaseDate.Value;
+        }
+
+        await _db.SaveChangesAsync();
+
+        var updated = await _db.Lots.Include(l => l.Items).FirstAsync(l => l.Id == id);
         return ToDto(updated);
     }
 

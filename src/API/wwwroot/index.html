@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RetroGame Tracker 🎮</title>
+  <title>Retro Tracker 🎮</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -393,6 +393,36 @@
       <div class="modal-footer">
         <button class="btn-secondary" onclick="App.closeModal('modal-add-to-lot')">Cancelar</button>
         <button class="btn-primary" onclick="App.saveAddToLot()">✅ Añadir al Lote</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ──── MODAL: EDITAR LOTE ──── -->
+  <div class="modal-overlay" id="modal-edit-lot" onclick="App.closeModal('modal-edit-lot')">
+    <div class="modal modal-sm" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>✏️ Editar Lote</h2>
+        <button class="modal-close" onclick="App.closeModal('modal-edit-lot')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-lot-id" />
+        <label style="margin-bottom:1rem">Nombre *
+          <input type="text" id="edit-lot-name" />
+        </label>
+        <label style="margin-bottom:1rem">Fecha de Compra
+          <input type="date" id="edit-lot-date" />
+        </label>
+        <label>Notas
+          <input type="text" id="edit-lot-notes" placeholder="Wallapop, Mercadillo..." />
+        </label>
+        <p style="margin-top:0.8rem;font-size:0.78rem;color:var(--text2)">
+          ⚠️ Si cambias la fecha, todos los artículos del lote la heredarán.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-edit-lot')">Cancelar</button>
+        <button class="btn-primary" onclick="App.saveEditLot()">Guardar</button>
       </div>
     </div>
   </div>
