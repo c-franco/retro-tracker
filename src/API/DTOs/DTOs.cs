@@ -86,6 +86,10 @@ public record LotItemRequest(
     string? Notes
 );
 
+
+public record AddItemsToLotRequest(
+    List<LotItemRequest> Items
+);
 // ───── DASHBOARD ─────
 
 public record DashboardDto(

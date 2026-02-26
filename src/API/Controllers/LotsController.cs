@@ -43,6 +43,15 @@ public class LotsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = lot.Id }, lot);
     }
 
+
+    /// <summary>Añadir artículos a un lote existente</summary>
+    [HttpPost("{id}/items")]
+    public async Task<IActionResult> AddItems(int id, [FromBody] AddItemsToLotRequest req)
+    {
+        var lot = await _service.AddItemsAsync(id, req);
+        return lot == null ? NotFound() : Ok(lot);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

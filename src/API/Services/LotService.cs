@@ -103,6 +103,38 @@ public class LotService
         return ToDto(created);
     }
 
+
+    /// <summary>
+    /// Añade nuevos artículos a un lote ya existente.
+    /// </summary>
+    public async Task<LotDto?> AddItemsAsync(int lotId, AddItemsToLotRequest req)
+    {
+        var lot = await _db.Lots.Include(l => l.Items).FirstOrDefaultAsync(l => l.Id == lotId);
+        if (lot == null) return null;
+
+        foreach (var ri in req.Items)
+        {
+            var item = new Item
+            {
+                LotId = lot.Id,
+                Type = Enum.Parse<ItemType>(ri.Type, true),
+                Name = ri.Name,
+                Platform = ri.Platform,
+                Condition = Enum.Parse<ItemCondition>(ri.Condition, true),
+                PurchasePrice = ri.PurchasePrice,
+                ShippingCost = ri.ShippingCost,
+                PurchaseDate = lot.PurchaseDate,
+                Notes = ri.Notes
+            };
+            _db.Items.Add(item);
+        }
+
+        await _db.SaveChangesAsync();
+
+        var updated = await _db.Lots.Include(l => l.Items).FirstAsync(l => l.Id == lotId);
+        return ToDto(updated);
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         var lot = await _db.Lots.Include(l => l.Items).FirstOrDefaultAsync(l => l.Id == id);

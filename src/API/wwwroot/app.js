@@ -381,7 +381,10 @@ const App = {
               <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
               <div class="lot-card-meta">${fmtDate(lot.purchaseDate)}${lot.notes ? ` — ${escapeHtml(lot.notes)}` : ''}</div>
             </div>
-            <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar lote">🗑️</button>
+            <div style="display:flex;gap:4px;align-items:center">
+              <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id}, '${escapeHtml(lot.name)}')" title="Añadir artículo al lote">+ Artículo</button>
+              <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar lote">🗑️</button>
+            </div>
           </div>
           <div class="lot-card-stats">
             <div class="lot-stat">
@@ -522,6 +525,86 @@ const App = {
       App.loadLots();
     } catch (e) {
       App.toast('Error creando lote', 'error');
+    }
+  },
+
+
+  // ── Añadir artículos a lote existente ──
+
+  openAddToLotModal(lotId, lotName) {
+    document.getElementById('add-to-lot-id').value = lotId;
+    document.getElementById('add-to-lot-subtitle').textContent = `Lote: ${lotName}`;
+    document.getElementById('add-to-lot-items-list').innerHTML = '';
+    App._addToLotCount = 0;
+    App.addItemToLotForm();  // Empezar con 1 fila vacía
+    App.openModal('modal-add-to-lot');
+  },
+
+  addItemToLotForm() {
+    if (!App._addToLotCount) App._addToLotCount = 0;
+    App._addToLotCount++;
+    const idx = App._addToLotCount;
+    const row = document.createElement('div');
+    row.className = 'lot-item-form-row';
+    row.id = `atl-item-${idx}`;
+    row.innerHTML = `
+      <label style="font-size:0.78rem">Nombre
+        <input type="text" placeholder="Ej: Nintendo DS Lite" data-field="name" />
+      </label>
+      <label style="font-size:0.78rem">Tipo
+        <select data-field="type">
+          <option value="Console">Consola</option>
+          <option value="VideoGame">Juego</option>
+          <option value="Accessory">Accesorio</option>
+        </select>
+      </label>
+      <label style="font-size:0.78rem">Plataforma
+        <input type="text" placeholder="DS" data-field="platform" list="platforms-list" />
+      </label>
+      <label style="font-size:0.78rem">Condición
+        <select data-field="condition">
+          <option value="Used">Usado</option>
+          <option value="New">Nuevo</option>
+          <option value="NeedsRepair">Reparar</option>
+        </select>
+      </label>
+      <label style="font-size:0.78rem">Precio €
+        <input type="number" step="0.01" placeholder="0.00" data-field="price" />
+      </label>
+      <label style="font-size:0.78rem">Envío €
+        <input type="number" step="0.01" placeholder="0.00" value="0" data-field="shipping" />
+      </label>
+      <button class="btn-icon" style="margin-top:1.4rem"
+              onclick="document.getElementById('atl-item-${idx}').remove()" title="Quitar">✕</button>
+    `;
+    document.getElementById('add-to-lot-items-list').appendChild(row);
+  },
+
+  async saveAddToLot() {
+    const lotId = document.getElementById('add-to-lot-id').value;
+    const rows = document.querySelectorAll('#add-to-lot-items-list .lot-item-form-row');
+
+    if (!rows.length) { App.toast('Añade al menos un artículo', 'error'); return; }
+
+    const items = Array.from(rows).map(r => ({
+      name: r.querySelector('[data-field="name"]').value || 'Sin nombre',
+      type: r.querySelector('[data-field="type"]').value,
+      platform: r.querySelector('[data-field="platform"]').value,
+      condition: r.querySelector('[data-field="condition"]').value,
+      purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value) || 0,
+      shippingCost: parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
+    }));
+
+    const invalid = items.filter(i => !i.name || i.name === 'Sin nombre');
+    if (invalid.length) { App.toast('Todos los artículos deben tener nombre', 'error'); return; }
+
+    try {
+      await App.post(`/lots/${lotId}/items`, { items });
+      App.toast(`✅ ${items.length} artículo(s) añadido(s) al lote`);
+      App.closeModal('modal-add-to-lot');
+      App.loadLots();
+    } catch (e) {
+      App.toast('Error añadiendo artículos', 'error');
     }
   },
 

@@ -369,6 +369,34 @@
     </div>
   </div>
 
+
+  <!-- ──── MODAL: AÑADIR ARTÍCULOS A LOTE ──── -->
+  <div class="modal-overlay" id="modal-add-to-lot" onclick="App.closeModal('modal-add-to-lot')">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2>➕ Añadir Artículos al Lote</h2>
+          <p id="add-to-lot-subtitle" style="font-size:0.8rem;color:var(--text2);margin-top:2px"></p>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('modal-add-to-lot')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="add-to-lot-id" />
+        <div class="lot-items-section" style="border-top:none;padding-top:0">
+          <div class="lot-items-header">
+            <h4>Artículos a añadir</h4>
+            <button class="btn-sm" onclick="App.addItemToLotForm()">+ Artículo</button>
+          </div>
+          <div id="add-to-lot-items-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-add-to-lot')">Cancelar</button>
+        <button class="btn-primary" onclick="App.saveAddToLot()">✅ Añadir al Lote</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
