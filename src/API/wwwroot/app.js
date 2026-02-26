@@ -377,15 +377,13 @@ const App = {
         const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
         return `<div class="lot-card">
           <div class="lot-card-header">
-            <div>
-              <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
-              <div class="lot-card-meta">${fmtDate(lot.purchaseDate)}${lot.notes ? ` — ${escapeHtml(lot.notes)}` : ''}</div>
-            </div>
-            <div style="display:flex;gap:4px;align-items:center">
+            <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
+            <div class="lot-card-actions">
               <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id}, '${escapeHtml(lot.name)}')" title="Añadir artículo al lote">+ Artículo</button>
               <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar lote">🗑️</button>
             </div>
           </div>
+          <div class="lot-card-meta">${fmtDate(lot.purchaseDate)}${lot.notes ? ` — ${escapeHtml(lot.notes)}` : ''}</div>
           <div class="lot-card-stats">
             <div class="lot-stat">
               <div class="lot-stat-value">${fmt(lot.totalCost)}</div>
