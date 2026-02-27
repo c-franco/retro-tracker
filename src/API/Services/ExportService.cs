@@ -14,7 +14,7 @@ public class ExportService
     public static readonly string[] InventoryHeaders = new[]
     {
         "ID", "Tipo", "Nombre", "Plataforma", "Condicion", "Estado",
-        "Lote", "Precio Compra", "Envio", "Coste Total",
+        "Lote", "Notas Lote", "Precio Compra", "Envio", "Coste Total",
         "Fecha Compra", "Vendido", "Precio Venta", "Fecha Venta",
         "Beneficio", "Coleccion", "Notas"
     };
@@ -50,16 +50,17 @@ public class ExportService
             ws.Cell(row, 5).Value  = item.Condition.ToString();
             ws.Cell(row, 6).Value  = item.Condition.ToString(); // Estado legible
             ws.Cell(row, 7).Value  = item.Lot?.Name ?? "Sin lote";
-            ws.Cell(row, 8).Value  = item.PurchasePrice;
-            ws.Cell(row, 9).Value  = item.ShippingCost;
-            ws.Cell(row, 10).Value = item.TotalCost;
-            ws.Cell(row, 11).Value = item.PurchaseDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 12).Value = item.IsSold ? "Si" : "No";
-            ws.Cell(row, 13).Value = item.SalePrice.HasValue ? item.SalePrice.Value : 0;
-            ws.Cell(row, 14).Value = item.SaleDate.HasValue ? item.SaleDate.Value.ToString("dd/MM/yyyy") : "";
-            ws.Cell(row, 15).Value = item.Profit.HasValue ? item.Profit.Value : 0;
-            ws.Cell(row, 16).Value = item.IsCollection ? "Si" : "No";
-            ws.Cell(row, 17).Value = item.Notes ?? "";
+            ws.Cell(row, 8).Value  = item.Lot?.Notes ?? "";
+            ws.Cell(row, 9).Value  = item.PurchasePrice;
+            ws.Cell(row, 10).Value = item.ShippingCost;
+            ws.Cell(row, 11).Value = item.TotalCost;
+            ws.Cell(row, 12).Value = item.PurchaseDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 13).Value = item.IsSold ? "Si" : "No";
+            ws.Cell(row, 14).Value = item.SalePrice.HasValue ? item.SalePrice.Value : 0;
+            ws.Cell(row, 15).Value = item.SaleDate.HasValue ? item.SaleDate.Value.ToString("dd/MM/yyyy") : "";
+            ws.Cell(row, 16).Value = item.Profit.HasValue ? item.Profit.Value : 0;
+            ws.Cell(row, 17).Value = item.IsCollection ? "Si" : "No";
+            ws.Cell(row, 18).Value = item.Notes ?? "";
 
             if (item.IsSold)
                 ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#d8f3dc");

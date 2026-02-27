@@ -22,7 +22,7 @@ public class ImportService
     public async Task<ImportResult> ImportItemsFromExcelAsync(Stream fileStream)
     {
         var errors = new List<ImportError>();
-        var itemsToInsert = new List<(Item Item, string LotName)>();
+        var itemsToInsert = new List<(Item Item, string LotName, string? LotNotes)>();
 
         using var wb = new XLWorkbook(fileStream);
 
@@ -100,26 +100,26 @@ public class ImportService
                 errors.Add(new(rowNum, "Condicion", condStr,
                     "Valor no válido. Debe ser: New, Used o NeedsRepair."));
 
-            // ── Col 8: Precio Compra ──
-            if (!GetDecimal(8, out var purchasePrice) || purchasePrice < 0)
-                errors.Add(new(rowNum, "Precio Compra", Get(8),
+            // ── Col 9: Precio Compra ──
+            if (!GetDecimal(9, out var purchasePrice) || purchasePrice < 0)
+                errors.Add(new(rowNum, "Precio Compra", Get(9),
                     "Debe ser un número decimal mayor o igual a 0."));
 
-            // ── Col 9: Envio ──
-            if (!GetDecimal(9, out var shippingCost) || shippingCost < 0)
-                errors.Add(new(rowNum, "Envio", Get(9),
+            // ── Col 10: Envio ──
+            if (!GetDecimal(10, out var shippingCost) || shippingCost < 0)
+                errors.Add(new(rowNum, "Envio", Get(10),
                     "Debe ser un número decimal mayor o igual a 0."));
 
-            // ── Col 11: Fecha Compra ──
-            if (!TryParseDate(row.Cell(11), out var purchaseDate))
-                errors.Add(new(rowNum, "Fecha Compra", Get(11),
+            // ── Col 12: Fecha Compra ──
+            if (!TryParseDate(row.Cell(12), out var purchaseDate))
+                errors.Add(new(rowNum, "Fecha Compra", Get(12),
                     "Formato de fecha no válido. Use dd/MM/yyyy."));
             else if (purchaseDate > DateTime.UtcNow.AddDays(1))
-                errors.Add(new(rowNum, "Fecha Compra", Get(11),
+                errors.Add(new(rowNum, "Fecha Compra", Get(12),
                     "La fecha de compra no puede ser futura."));
 
-            // ── Col 12: Vendido ──
-            var soldStr = Get(12);
+            // ── Col 13: Vendido ──
+            var soldStr = Get(13);
             bool isSold = soldStr.Equals("Si", StringComparison.OrdinalIgnoreCase)
                        || soldStr.Equals("Sí", StringComparison.OrdinalIgnoreCase)
                        || soldStr == "1";
@@ -129,33 +129,33 @@ public class ImportService
                 errors.Add(new(rowNum, "Vendido", soldStr,
                     "Valor no válido. Debe ser 'Si' o 'No'."));
 
-            // ── Col 13: Precio Venta (obligatorio si Vendido = Si) ──
+            // ── Col 14: Precio Venta (obligatorio si Vendido = Si) ──
             decimal? salePrice = null;
             if (isSold)
             {
-                if (!GetDecimal(13, out var sp) || sp <= 0)
-                    errors.Add(new(rowNum, "Precio Venta", Get(13),
+                if (!GetDecimal(14, out var sp) || sp <= 0)
+                    errors.Add(new(rowNum, "Precio Venta", Get(14),
                         "Si el artículo está vendido, el precio de venta debe ser mayor que 0."));
                 else
                     salePrice = sp;
             }
 
-            // ── Col 14: Fecha Venta (obligatoria si Vendido = Si) ──
+            // ── Col 15: Fecha Venta (obligatoria si Vendido = Si) ──
             DateTime? saleDate = null;
             if (isSold)
             {
-                if (!TryParseDate(row.Cell(14), out var sd))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(14),
+                if (!TryParseDate(row.Cell(15), out var sd))
+                    errors.Add(new(rowNum, "Fecha Venta", Get(15),
                         "Si el artículo está vendido, la fecha de venta debe ser válida (dd/MM/yyyy)."));
                 else if (sd > DateTime.UtcNow.AddDays(1))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(14),
+                    errors.Add(new(rowNum, "Fecha Venta", Get(15),
                         "La fecha de venta no puede ser futura."));
                 else
                     saleDate = sd;
             }
 
-            // ── Col 16: Coleccion ──
-            var collectionStr = Get(16);
+            // ── Col 17: Coleccion ──
+            var collectionStr = Get(17);
             bool isCollection = collectionStr.Equals("Si", StringComparison.OrdinalIgnoreCase)
                              || collectionStr.Equals("Sí", StringComparison.OrdinalIgnoreCase)
                              || collectionStr == "1";
@@ -167,6 +167,9 @@ public class ImportService
                     "Valor no válido. Debe ser 'Si' o 'No'."));
 
             if (errors.Any(e => e.Row == rowNum)) continue;
+
+            // ── Col 8: Notas Lote (se usa al crear/actualizar el lote) ──
+            var lotNotes = Get(8).NullIfEmpty();
 
             itemsToInsert.Add((new Item
             {
@@ -181,8 +184,8 @@ public class ImportService
                 SalePrice     = salePrice,
                 SaleDate      = saleDate,
                 IsCollection  = isCollection,
-                Notes         = Get(17).NullIfEmpty()
-            }, Get(7)));
+                Notes         = Get(18).NullIfEmpty()
+            }, Get(7), lotNotes));
         }
 
         if (errors.Any())
@@ -206,14 +209,24 @@ public class ImportService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        // Actualizar notas de lotes ya existentes si estaban vacías
+        foreach (var (_, lotName, lotNotes) in itemsToInsert)
+        {
+            if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
+                && lotNotes != null && lotMap.TryGetValue(lotName, out var existingLot)
+                && string.IsNullOrWhiteSpace(existingLot.Notes))
+                existingLot.Notes = lotNotes;
+        }
+
         foreach (var lotName in newLotNames)
         {
-            // Inferir fecha del lote a partir del primer ítem que lo menciona
-            var firstItem = itemsToInsert.First(t => t.LotName.Equals(lotName, StringComparison.OrdinalIgnoreCase)).Item;
+            // Inferir fecha y notas del lote a partir del primer ítem que lo menciona
+            var firstEntry = itemsToInsert.First(t => t.LotName.Equals(lotName, StringComparison.OrdinalIgnoreCase));
             var newLot = new Lot
             {
-                Name              = lotName,
-                PurchaseDate      = firstItem.PurchaseDate,
+                Name               = lotName,
+                PurchaseDate       = firstEntry.Item.PurchaseDate,
+                Notes              = firstEntry.LotNotes,
                 TotalPurchasePrice = 0,
                 TotalShippingCost  = 0
             };
@@ -223,7 +236,7 @@ public class ImportService
         }
 
         // Asignar LotId a cada ítem
-        foreach (var (item, lotName) in itemsToInsert)
+        foreach (var (item, lotName, _) in itemsToInsert)
         {
             if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
                 && lotMap.TryGetValue(lotName, out var lot))
@@ -231,7 +244,7 @@ public class ImportService
         }
 
         _db.Items.AddRange(itemsToInsert.Select(t => t.Item));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(); // guarda ítems y notas de lotes actualizadas
 
         return new ImportResult(true, itemsToInsert.Count, new List<ImportError>());
     }
