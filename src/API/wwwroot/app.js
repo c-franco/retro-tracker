@@ -16,7 +16,6 @@ let recentItems = [];
 // ═══════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Navegación
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
@@ -24,15 +23,88 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Fecha por defecto = hoy
   const today = new Date().toISOString().split('T')[0];
   document.querySelectorAll('input[type="date"]').forEach(el => el.value = today);
 
-  // Calcular beneficio en tiempo real en modal venta
   document.getElementById('sell-price').addEventListener('input', App.updateSellPreview);
 
   App.showView('dashboard');
 });
+
+// ═══════════════════════════════════════════
+// VALIDACIÓN — utilidades
+// ═══════════════════════════════════════════
+
+const V = {
+  /** Marca un campo como erróneo y muestra mensaje inline */
+  error(fieldEl, msg) {
+    fieldEl.classList.add('field-error');
+    let hint = fieldEl.parentElement.querySelector('.field-hint');
+    if (!hint) {
+      hint = document.createElement('span');
+      hint.className = 'field-hint error';
+      fieldEl.parentElement.appendChild(hint);
+    }
+    hint.textContent = msg;
+    hint.className = 'field-hint error';
+  },
+
+  /** Limpia el estado de error de un campo */
+  clear(fieldEl) {
+    fieldEl.classList.remove('field-error');
+    const hint = fieldEl.parentElement?.querySelector('.field-hint');
+    if (hint) hint.remove();
+  },
+
+  /** Limpia todos los errores dentro de un contenedor */
+  clearAll(containerEl) {
+    containerEl.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+    containerEl.querySelectorAll('.field-hint').forEach(el => el.remove());
+  },
+
+  /** Texto no vacío */
+  requireText(fieldEl, label = 'Este campo') {
+    if (!fieldEl.value.trim()) { V.error(fieldEl, `${label} es obligatorio`); return false; }
+    V.clear(fieldEl);
+    return true;
+  },
+
+  /** Número estrictamente > 0 */
+  requirePositive(fieldEl, label = 'El valor') {
+    const val = parseFloat(fieldEl.value);
+    if (isNaN(val) || val <= 0) { V.error(fieldEl, `${label} debe ser mayor que 0`); return false; }
+    V.clear(fieldEl);
+    return true;
+  },
+
+  /** Número >= 0 */
+  requireNonNegative(fieldEl, label = 'El valor') {
+    const val = parseFloat(fieldEl.value);
+    if (isNaN(val) || val < 0) { V.error(fieldEl, `${label} no puede ser negativo`); return false; }
+    V.clear(fieldEl);
+    return true;
+  },
+
+  /** Fecha válida y no futura */
+  requireDate(fieldEl, label = 'La fecha') {
+    const val = fieldEl.value;
+    if (!val) { V.error(fieldEl, `${label} es obligatoria`); return false; }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) { V.error(fieldEl, `${label} no es válida`); return false; }
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    if (d > tomorrow) { V.error(fieldEl, `${label} no puede ser futura`); return false; }
+    V.clear(fieldEl);
+    return true;
+  },
+
+  /** Registra listener para limpiar error al modificar el campo */
+  watch(fieldEl) {
+    if (!fieldEl || fieldEl._vWatched) return;
+    fieldEl._vWatched = true;
+    fieldEl.addEventListener('input',  () => V.clear(fieldEl));
+    fieldEl.addEventListener('change', () => V.clear(fieldEl));
+  }
+};
 
 // ═══════════════════════════════════════════
 // NAMESPACE PRINCIPAL
@@ -47,14 +119,12 @@ const App = {
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.getElementById(`view-${view}`)?.classList.add('active');
     document.querySelector(`[data-view="${view}"]`)?.classList.add('active');
-
-    // Cerrar sidebar en móvil
     document.getElementById('sidebar').classList.remove('open');
 
     if (view === 'dashboard') App.loadDashboard();
     if (view === 'inventory') App.loadInventory();
-    if (view === 'lots') App.loadLots();
-    if (view === 'settings') App.loadSettings();
+    if (view === 'lots')      App.loadLots();
+    if (view === 'settings')  App.loadSettings();
     if (view === 'quick-add') App.loadRecentItems();
   },
 
@@ -68,27 +138,24 @@ const App = {
     try {
       const data = await App.get('/dashboard');
 
-      // Stat cards
-      document.getElementById('stat-invested').textContent = fmt(data.totalInvested);
-      document.getElementById('stat-revenue').textContent = fmt(data.totalRevenue);
-      document.getElementById('stat-profit').textContent = fmt(data.totalProfit);
-      document.getElementById('stat-balance').textContent = fmt(data.currentBalance);
+      document.getElementById('stat-invested').textContent    = fmt(data.totalInvested);
+      document.getElementById('stat-revenue').textContent     = fmt(data.totalRevenue);
+      document.getElementById('stat-profit').textContent      = fmt(data.totalProfit);
+      document.getElementById('stat-balance').textContent     = fmt(data.currentBalance);
       document.getElementById('stat-stock-value').textContent = fmt(data.stockValue);
       document.getElementById('stat-stock-count').textContent = `${data.stockItems} artículo${data.stockItems !== 1 ? 's' : ''}`;
       document.getElementById('stat-collection-value').textContent = fmt(data.collectionValue);
       document.getElementById('stat-collection-count').textContent = `${data.collectionItems} artículo${data.collectionItems !== 1 ? 's' : ''}`;
 
-      // Colores dinámicos en Beneficio y Balance según positivo/negativo
-      const profitCard = document.querySelector('.stat-card.profit .stat-value');
-      profitCard.style.color = data.totalProfit >= 0 ? 'var(--green)' : 'var(--red)';
-      const balanceCard = document.querySelector('.stat-card.balance .stat-value');
-      balanceCard.style.color = data.currentBalance >= 0 ? 'var(--accent)' : 'var(--red)';
+      document.querySelector('.stat-card.profit .stat-value').style.color =
+        data.totalProfit >= 0 ? 'var(--green)' : 'var(--red)';
+      document.querySelector('.stat-card.balance .stat-value').style.color =
+        data.currentBalance >= 0 ? 'var(--accent)' : 'var(--red)';
 
       App.renderMonthlyChart(data.monthlyStats);
       App.renderPlatformChart(data.platformStats);
       App.renderPendingTable(data.pendingItems);
       document.getElementById('pending-count').textContent = data.stockItems;
-
     } catch (e) {
       App.toast('Error cargando dashboard', 'error');
     }
@@ -97,22 +164,13 @@ const App = {
   renderMonthlyChart(stats) {
     const ctx = document.getElementById('chartMonthly').getContext('2d');
     if (chartMonthly) chartMonthly.destroy();
-
     chartMonthly = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: stats.map(s => `${s.monthName.slice(0, 3)} ${s.year}`),
         datasets: [
-          {
-            label: 'Invertido',
-            data: stats.map(s => s.invested),
-            backgroundColor: 'rgba(255,107,53,0.7)',
-          },
-          {
-            label: 'Recuperado',
-            data: stats.map(s => s.revenue),
-            backgroundColor: 'rgba(0,255,136,0.7)',
-          }
+          { label: 'Invertido',   data: stats.map(s => s.invested), backgroundColor: 'rgba(255,107,53,0.7)' },
+          { label: 'Recuperado',  data: stats.map(s => s.revenue),  backgroundColor: 'rgba(0,255,136,0.7)' }
         ]
       },
       options: {
@@ -130,59 +188,26 @@ const App = {
     if (!stats.length) return;
     const ctx = document.getElementById('chartPlatform').getContext('2d');
     if (chartPlatform) chartPlatform.destroy();
-
     const platformColors = {
-      'GB':      '#5a8a00',
-      'GBC':     '#7ab800',
-      'GBA':     '#9fd600',
-      'DS':      '#c8f000',
-      '3DS':     '#f0e000',
-      'NES':     '#e84000',
-      'SNES':    '#cc2200',
-      'N64':     '#a80000',
-      'GCN':     '#6a0dad',
-      'Wii':     '#009ac7',
-      'WiiU':    '#005f7a',
-      'Switch':  '#e4000f',
-      'PS1':     '#003087',
-      'PS2':     '#0050b3',
-      'PS3':     '#0077cc',
-      'PS4':     '#0099ee',
-      'PS5':     '#00bbff',
-      'PSP':     '#00aaff',
-      'PSV':     '#4400cc',
-      'Xbox':    '#107c10',
-      'X360':    '#52b043',
-      'XOne':    '#2d7a2d',
-      'Genesis': '#1a1aff',
-      'Saturn':  '#5555ff',
-      'DC':      '#ff8800',
-      'GG':      '#ff5500',
-      'PC':      '#888888',
-      'Otro':    '#444444',
+      'GB':'#5a8a00','GBC':'#7ab800','GBA':'#9fd600','DS':'#c8f000','3DS':'#f0e000',
+      'NES':'#e84000','SNES':'#cc2200','N64':'#a80000','GCN':'#6a0dad',
+      'Wii':'#009ac7','WiiU':'#005f7a','Switch':'#e4000f',
+      'PS1':'#003087','PS2':'#0050b3','PS3':'#0077cc','PS4':'#0099ee','PS5':'#00bbff',
+      'PSP':'#00aaff','PSV':'#4400cc',
+      'Xbox':'#107c10','X360':'#52b043','XOne':'#2d7a2d',
+      'Genesis':'#1a1aff','Saturn':'#5555ff','DC':'#ff8800','GG':'#ff5500',
+      'PC':'#888888','Otro':'#444444',
     };
-
     const fallback = ['#ff00aa','#00ffcc','#ff99ff','#ffcc00','#cc00ff','#00ff66'];
-    let fallbackIdx = 0;
-
-    const colors = stats.map(s =>
-      platformColors[s.platform] || fallback[fallbackIdx++ % fallback.length]
-    );
-
+    let fi = 0;
+    const colors = stats.map(s => platformColors[s.platform] || fallback[fi++ % fallback.length]);
     chartPlatform = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: stats.map(s => s.platform),
-        datasets: [{
-          data: stats.map(s => s.totalItems),
-          backgroundColor: colors,
-          borderWidth: 0
-        }]
+        datasets: [{ data: stats.map(s => s.totalItems), backgroundColor: colors, borderWidth: 0 }]
       },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } }
-      }
+      options: { responsive: true, plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } } }
     });
   },
 
@@ -201,9 +226,7 @@ const App = {
         <td>${typeBadge(item.type)}</td>
         <td class="neutral">${fmt(item.totalCost)}</td>
         <td style="color:${days > 60 ? '#ff4444' : '#888'}">${days}d</td>
-        <td>
-          <button class="btn-icon" onclick="App.openSellModal(${item.id}, '${escapeHtml(item.name)}', ${item.totalCost})" title="Vender">💰</button>
-        </td>
+        <td><button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})" title="Vender">💰</button></td>
       </tr>`;
     }).join('');
   },
@@ -211,15 +234,15 @@ const App = {
   // ── Inventario ──────────────────────────
 
   async loadInventory() {
-    const search = document.getElementById('search-input')?.value || '';
-    const platform = document.getElementById('filter-platform')?.value || '';
-    const type = document.getElementById('filter-type')?.value || '';
+    const search       = document.getElementById('search-input')?.value || '';
+    const platform     = document.getElementById('filter-platform')?.value || '';
+    const type         = document.getElementById('filter-type')?.value || '';
     const statusFilter = document.getElementById('filter-status')?.value || '';
 
     const params = new URLSearchParams();
-    if (search) params.set('search', search);
+    if (search)   params.set('search', search);
     if (platform) params.set('platform', platform);
-    if (type) params.set('type', type);
+    if (type)     params.set('type', type);
     if (statusFilter === 'collection') params.set('isCollection', 'true');
     else if (statusFilter !== '') params.set('isSold', statusFilter);
 
@@ -242,9 +265,8 @@ const App = {
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
       const collectionBadge = item.isCollection
-        ? '<span class="badge badge-collection">⭐ Colección</span>&nbsp;'
+        ? '<span class="badge badge-collection">⭐</span>&nbsp;'
         : '';
-
       return `<tr class="${item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td>${typeBadge(item.type)}</td>
@@ -258,12 +280,10 @@ const App = {
           <div style="display:flex;gap:4px">
             ${!item.isSold && !item.isCollection
               ? `<button class="btn-icon" title="Vender" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
-              : item.isSold
-                ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>`
-                : ''
+              : item.isSold ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>` : ''
             }
-            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
-            <button class="btn-icon" title="Editar" onclick="App.openItemModal(${item.id})">✏️</button>
+            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id},${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
+            <button class="btn-icon" title="Editar"   onclick="App.openItemModal(${item.id})">✏️</button>
             <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>
         </td>
@@ -275,10 +295,9 @@ const App = {
 
   async openItemModal(itemId = null) {
     currentItemId = itemId;
-    document.getElementById('modal-item-title').textContent =
-      itemId ? 'Editar Artículo' : 'Añadir Artículo';
+    document.getElementById('modal-item-title').textContent = itemId ? 'Editar Artículo' : 'Añadir Artículo';
+    V.clearAll(document.getElementById('modal-item'));
 
-    // Poblar selector de lotes
     const lots = await App.get('/lots');
     const lotSel = document.getElementById('item-lot-id');
     lotSel.innerHTML = '<option value="">Sin lote</option>' +
@@ -286,56 +305,66 @@ const App = {
 
     if (itemId) {
       const item = await App.get(`/items/${itemId}`);
-      document.getElementById('item-id').value = item.id;
-      document.getElementById('item-name').value = item.name;
-      document.getElementById('item-platform').value = item.platform || '';
-      document.getElementById('item-type').value = item.type;
-      document.getElementById('item-condition').value = item.condition;
+      document.getElementById('item-id').value            = item.id;
+      document.getElementById('item-name').value          = item.name;
+      document.getElementById('item-platform').value      = item.platform || '';
+      document.getElementById('item-type').value          = item.type;
+      document.getElementById('item-condition').value     = item.condition;
       document.getElementById('item-purchase-price').value = item.purchasePrice;
-      document.getElementById('item-shipping').value = item.shippingCost;
+      document.getElementById('item-shipping').value      = item.shippingCost;
       document.getElementById('item-purchase-date').value = item.purchaseDate.split('T')[0];
-      document.getElementById('item-lot-id').value = item.lotId || '';
-      document.getElementById('item-notes').value = item.notes || '';
+      document.getElementById('item-lot-id').value        = item.lotId || '';
+      document.getElementById('item-notes').value         = item.notes || '';
       document.getElementById('item-is-collection').checked = item.isCollection || false;
     } else {
-      document.getElementById('item-id').value = '';
-      document.getElementById('item-name').value = '';
-      document.getElementById('item-platform').value = '';
+      ['item-id','item-name','item-platform','item-notes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('item-purchase-price').value = '';
-      document.getElementById('item-shipping').value = '0';
-      document.getElementById('item-purchase-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('item-lot-id').value = '';
-      document.getElementById('item-notes').value = '';
+      document.getElementById('item-shipping').value       = '0';
+      document.getElementById('item-purchase-date').value  = new Date().toISOString().split('T')[0];
+      document.getElementById('item-lot-id').value         = '';
+      document.getElementById('item-is-collection').checked = false;
     }
 
+    ['item-name','item-purchase-price','item-shipping','item-purchase-date'].forEach(id =>
+      V.watch(document.getElementById(id))
+    );
     App.openModal('modal-item');
   },
 
-  async saveItem() {
-    const id = document.getElementById('item-id').value;
-    const body = {
-      name: document.getElementById('item-name').value,
-      platform: document.getElementById('item-platform').value,
-      type: document.getElementById('item-type').value,
-      condition: document.getElementById('item-condition').value,
-      purchasePrice: parseFloat(document.getElementById('item-purchase-price').value) || 0,
-      shippingCost: parseFloat(document.getElementById('item-shipping').value) || 0,
-      purchaseDate: document.getElementById('item-purchase-date').value,
-      lotId: document.getElementById('item-lot-id').value || null,
-      notes: document.getElementById('item-notes').value,
-      isCollection: document.getElementById('item-is-collection').checked
+  _validateItemForm() {
+    const nameEl  = document.getElementById('item-name');
+    const priceEl = document.getElementById('item-purchase-price');
+    const shipEl  = document.getElementById('item-shipping');
+    const dateEl  = document.getElementById('item-purchase-date');
+
+    let ok = true;
+    ok = V.requireText(nameEl,         'El nombre')             && ok;
+    ok = V.requirePositive(priceEl,    'El precio de compra')   && ok;
+    ok = V.requireNonNegative(shipEl,  'El gasto de envío')   && ok;
+    ok = V.requireDate(dateEl,         'La fecha de compra')    && ok;
+    if (!ok) return null;
+
+    return {
+      name:          nameEl.value.trim(),
+      platform:      document.getElementById('item-platform').value.trim(),
+      type:          document.getElementById('item-type').value,
+      condition:     document.getElementById('item-condition').value,
+      purchasePrice: parseFloat(priceEl.value),
+      shippingCost:  parseFloat(shipEl.value),
+      purchaseDate:  dateEl.value,
+      lotId:         document.getElementById('item-lot-id').value || null,
+      notes:         document.getElementById('item-notes').value.trim(),
+      isCollection:  document.getElementById('item-is-collection').checked
     };
+  },
 
-    if (!body.name) { App.toast('El nombre es obligatorio', 'error'); return; }
-
+  async saveItem() {
+    const body = App._validateItemForm();
+    if (!body) return;
+    const id = document.getElementById('item-id').value;
     try {
-      if (id) {
-        await App.put(`/items/${id}`, body);
-        App.toast('Artículo actualizado ✅');
-      } else {
-        await App.post('/items', body);
-        App.toast('Artículo añadido ✅');
-      }
+      if (id) { await App.put(`/items/${id}`, body);  App.toast('Artículo actualizado ✅'); }
+      else    { await App.post('/items', body);         App.toast('Artículo añadido ✅'); }
       App.closeModal('modal-item');
       App.loadInventory();
     } catch (e) {
@@ -346,13 +375,16 @@ const App = {
   // ── Venta ───────────────────────────────
 
   openSellModal(itemId, name, cost) {
-    document.getElementById('sell-item-id').value = itemId;
+    V.clearAll(document.getElementById('modal-sell'));
+    document.getElementById('sell-item-id').value   = itemId;
     document.getElementById('sell-item-name').textContent = name;
-    document.getElementById('sell-price').value = '';
-    document.getElementById('sell-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('sell-price').value     = '';
+    document.getElementById('sell-date').value      = new Date().toISOString().split('T')[0];
     currentSellCost = cost;
     document.getElementById('sell-profit-preview').innerHTML =
       `<span class="neutral">Coste total: ${fmt(cost)}</span>`;
+    V.watch(document.getElementById('sell-price'));
+    V.watch(document.getElementById('sell-date'));
     App.openModal('modal-sell');
   },
 
@@ -365,15 +397,16 @@ const App = {
   },
 
   async confirmSell() {
-    const id = document.getElementById('sell-item-id').value;
-    const price = parseFloat(document.getElementById('sell-price').value);
-    if (!price) { App.toast('Introduce el precio de venta', 'error'); return; }
+    const priceEl = document.getElementById('sell-price');
+    const dateEl  = document.getElementById('sell-date');
+    let ok = true;
+    ok = V.requirePositive(priceEl, 'El precio de venta') && ok;
+    ok = V.requireDate(dateEl,      'La fecha de venta')  && ok;
+    if (!ok) return;
 
+    const id = document.getElementById('sell-item-id').value;
     try {
-      await App.post(`/items/${id}/sell`, {
-        salePrice: price,
-        saleDate: document.getElementById('sell-date').value
-      });
+      await App.post(`/items/${id}/sell`, { salePrice: parseFloat(priceEl.value), saleDate: dateEl.value });
       App.toast('Venta registrada 💰');
       App.closeModal('modal-sell');
       App.loadInventory();
@@ -431,25 +464,16 @@ const App = {
           <div class="lot-card-header">
             <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
             <div class="lot-card-actions">
-              <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id}, '${escapeHtml(lot.name)}')" title="Añadir artículo al lote">+ Artículo</button>
-              <button class="btn-icon" onclick="App.openEditLotModal(${lot.id}, '${escapeHtml(lot.name)}', '${lot.purchaseDate.split('T')[0]}', '${escapeHtml(lot.notes || '')}')" title="Editar lote">✏️</button>
-              <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar lote">🗑️</button>
+              <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id},'${escapeHtml(lot.name)}')">+ Artículo</button>
+              <button class="btn-icon" onclick="App.openEditLotModal(${lot.id},'${escapeHtml(lot.name)}','${lot.purchaseDate.split('T')[0]}','${escapeHtml(lot.notes||'')}')">✏️</button>
+              <button class="btn-icon" onclick="App.deleteLot(${lot.id})">🗑️</button>
             </div>
           </div>
           <div class="lot-card-meta">${fmtDate(lot.purchaseDate)}${lot.notes ? ` — ${escapeHtml(lot.notes)}` : ''}</div>
           <div class="lot-card-stats">
-            <div class="lot-stat">
-              <div class="lot-stat-value">${fmt(lot.totalCost)}</div>
-              <div class="lot-stat-label">Invertido</div>
-            </div>
-            <div class="lot-stat">
-              <div class="lot-stat-value">${fmt(lot.totalRevenue)}</div>
-              <div class="lot-stat-label">Recuperado</div>
-            </div>
-            <div class="lot-stat">
-              <div class="lot-stat-value ${profitCls}">${fmt(lot.totalProfit)}</div>
-              <div class="lot-stat-label">Beneficio</div>
-            </div>
+            <div class="lot-stat"><div class="lot-stat-value">${fmt(lot.totalCost)}</div><div class="lot-stat-label">Invertido</div></div>
+            <div class="lot-stat"><div class="lot-stat-value">${fmt(lot.totalRevenue)}</div><div class="lot-stat-label">Recuperado</div></div>
+            <div class="lot-stat"><div class="lot-stat-value ${profitCls}">${fmt(lot.totalProfit)}</div><div class="lot-stat-label">Beneficio</div></div>
           </div>
           <div class="lot-items-preview">
             ${lot.items.map(item => `
@@ -459,11 +483,10 @@ const App = {
                   <span class="neutral">${fmt(item.totalCost)}</span>
                   ${item.isSold
                     ? `<span class="positive">${fmt(item.salePrice)}</span>`
-                    : `<button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})" title="Vender">💰</button>`
+                    : `<button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
                   }
                 </span>
-              </div>
-            `).join('')}
+              </div>`).join('')}
           </div>
         </div>`;
       }).join('');
@@ -476,14 +499,16 @@ const App = {
 
   openLotModal() {
     lotItemCount = 0;
-    document.getElementById('lot-name').value = '';
-    document.getElementById('lot-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('lot-price').value = '';
+    V.clearAll(document.getElementById('modal-lot'));
+    document.getElementById('lot-name').value     = '';
+    document.getElementById('lot-date').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('lot-price').value    = '';
     document.getElementById('lot-shipping').value = '0';
-    document.getElementById('lot-notes').value = '';
+    document.getElementById('lot-notes').value    = '';
     document.getElementById('lot-items-list').innerHTML = '';
     document.getElementById('lot-total-info').innerHTML = '';
 
+    ['lot-name','lot-price','lot-shipping','lot-date'].forEach(id => V.watch(document.getElementById(id)));
     App.addLotItem();
     App.addLotItem();
     App.openModal('modal-lot');
@@ -491,11 +516,12 @@ const App = {
 
   addLotItem() {
     lotItemCount++;
+    const idx = lotItemCount;
     const row = document.createElement('div');
     row.className = 'lot-item-form-row';
-    row.id = `lot-item-${lotItemCount}`;
+    row.id = `lot-item-${idx}`;
     row.innerHTML = `
-      <label style="font-size:0.78rem">Nombre
+      <label style="font-size:0.78rem">Nombre *
         <input type="text" placeholder="Ej: Nintendo DSi" data-field="name" />
       </label>
       <label style="font-size:0.78rem">Tipo
@@ -509,67 +535,92 @@ const App = {
         <input type="text" placeholder="DS" data-field="platform" list="platforms-list" />
       </label>
       <label style="font-size:0.78rem">Precio €
-        <input type="number" step="0.01" placeholder="0" data-field="price"
+        <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price"
                oninput="App.recalcLotItems()" />
       </label>
       <label style="font-size:0.78rem">Envío €
-        <input type="number" step="0.01" placeholder="0" data-field="shipping" />
+        <input type="number" step="0.01" min="0" placeholder="0.00" data-field="shipping" />
       </label>
       <button class="btn-icon" style="margin-top:1.4rem"
-              onclick="document.getElementById('lot-item-${lotItemCount}').remove();App.recalcLotItems()">✕</button>
+              onclick="document.getElementById('lot-item-${idx}').remove();App.recalcLotItems()">✕</button>
     `;
     document.getElementById('lot-items-list').appendChild(row);
+    row.querySelector('[data-field="name"]').addEventListener('input', function() { V.clear(this); });
+    row.querySelector('[data-field="price"]').addEventListener('input', function() { V.clear(this); });
+    row.querySelector('[data-field="shipping"]').addEventListener('input', function() { V.clear(this); });
   },
 
   recalcLotItems() {
-    const totalPrice = parseFloat(document.getElementById('lot-price').value) || 0;
+    const totalPrice    = parseFloat(document.getElementById('lot-price').value) || 0;
     const totalShipping = parseFloat(document.getElementById('lot-shipping').value) || 0;
     const rows = document.querySelectorAll('#lot-items-list .lot-item-form-row');
     if (!rows.length) return;
 
-    const itemPrices = Array.from(rows).map(r =>
-      parseFloat(r.querySelector('[data-field="price"]')?.value) || 0
-    );
-    const priceSum = itemPrices.reduce((a, b) => a + b, 0);
+    const priceSum = Array.from(rows)
+      .map(r => parseFloat(r.querySelector('[data-field="price"]')?.value) || 0)
+      .reduce((a, b) => a + b, 0);
 
     let info = `<strong>Total artículos: ${rows.length}</strong>`;
     if (priceSum > 0 && Math.abs(priceSum - totalPrice) > 0.01) {
-      info += ` — <span style="color:#ff4444">⚠️ Suma precios: ${fmt(priceSum)} ≠ total: ${fmt(totalPrice)}</span>`;
+      info += ` — <span style="color:#ff4444">⚠️ Suma: ${fmt(priceSum)} ≠ total: ${fmt(totalPrice)}</span>`;
     } else if (priceSum === 0 && totalPrice > 0) {
-      const perItem = Math.round(totalPrice / rows.length * 100) / 100;
+      const perItem = Math.round(totalPrice    / rows.length * 100) / 100;
       const perShip = Math.round(totalShipping / rows.length * 100) / 100;
       info += ` — Reparto equitativo: ${fmt(perItem)}/art + ${fmt(perShip)}/envío`;
     }
     document.getElementById('lot-total-info').innerHTML = info;
   },
 
-  async saveLot() {
-    const name = document.getElementById('lot-name').value;
-    if (!name) { App.toast('El nombre del lote es obligatorio', 'error'); return; }
+  _validateLotForm() {
+    const nameEl  = document.getElementById('lot-name');
+    const priceEl = document.getElementById('lot-price');
+    const shipEl  = document.getElementById('lot-shipping');
+    const dateEl  = document.getElementById('lot-date');
+
+    let ok = true;
+    ok = V.requireText(nameEl,         'El nombre del lote') && ok;
+    ok = V.requireNonNegative(priceEl, 'El precio total')    && ok;
+    ok = V.requireNonNegative(shipEl,  'El envío total')     && ok;
+    ok = V.requireDate(dateEl,         'La fecha')           && ok;
 
     const rows = document.querySelectorAll('#lot-items-list .lot-item-form-row');
-    if (!rows.length) { App.toast('Añade al menos un artículo', 'error'); return; }
+    if (!rows.length) { App.toast('Añade al menos un artículo al lote', 'error'); ok = false; }
 
-    const items = Array.from(rows).map(r => ({
-      name: r.querySelector('[data-field="name"]').value || 'Sin nombre',
-      type: r.querySelector('[data-field="type"]').value,
-      platform: r.querySelector('[data-field="platform"]').value,
-      condition: 'Used',
-      purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value) || 0,
-      shippingCost: parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
-    }));
+    rows.forEach(row => {
+      const n = row.querySelector('[data-field="name"]');
+      const p = row.querySelector('[data-field="price"]');
+      const s = row.querySelector('[data-field="shipping"]');
+      if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
+      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
+      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
+    });
 
-    const body = {
-      name,
-      notes: document.getElementById('lot-notes').value,
-      purchaseDate: document.getElementById('lot-date').value,
-      totalPurchasePrice: parseFloat(document.getElementById('lot-price').value) || 0,
-      totalShippingCost: parseFloat(document.getElementById('lot-shipping').value) || 0,
-      items
+    if (!ok) return null;
+
+    return {
+      body: {
+        name:               nameEl.value.trim(),
+        notes:              document.getElementById('lot-notes').value.trim(),
+        purchaseDate:       dateEl.value,
+        totalPurchasePrice: parseFloat(priceEl.value) || 0,
+        totalShippingCost:  parseFloat(shipEl.value)  || 0,
+        items: Array.from(rows).map(r => ({
+          name:          r.querySelector('[data-field="name"]').value.trim(),
+          type:          r.querySelector('[data-field="type"]').value,
+          platform:      r.querySelector('[data-field="platform"]').value.trim(),
+          condition:     'Used',
+          purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value)    || 0,
+          shippingCost:  parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
+        }))
+      }
     };
+  },
 
+  async saveLot() {
+    const result = App._validateLotForm();
+    if (!result) return;
     try {
-      await App.post('/lots', body);
+      await App.post('/lots', result.body);
       App.toast('Lote creado 🎁');
       App.closeModal('modal-lot');
       App.loadLots();
@@ -581,26 +632,30 @@ const App = {
   // ── Editar lote ──────────────────────────
 
   openEditLotModal(lotId, name, date, notes) {
-    document.getElementById('edit-lot-id').value = lotId;
-    document.getElementById('edit-lot-name').value = name;
-    document.getElementById('edit-lot-date').value = date;
+    V.clearAll(document.getElementById('modal-edit-lot'));
+    document.getElementById('edit-lot-id').value    = lotId;
+    document.getElementById('edit-lot-name').value  = name;
+    document.getElementById('edit-lot-date').value  = date;
     document.getElementById('edit-lot-notes').value = notes;
+    ['edit-lot-name','edit-lot-date'].forEach(id => V.watch(document.getElementById(id)));
     App.openModal('modal-edit-lot');
   },
 
   async saveEditLot() {
+    const nameEl = document.getElementById('edit-lot-name');
+    const dateEl = document.getElementById('edit-lot-date');
+    let ok = true;
+    ok = V.requireText(nameEl, 'El nombre') && ok;
+    ok = V.requireDate(dateEl, 'La fecha')  && ok;
+    if (!ok) return;
+
     const id = document.getElementById('edit-lot-id').value;
-    const name = document.getElementById('edit-lot-name').value.trim();
-    if (!name) { App.toast('El nombre es obligatorio', 'error'); return; }
-
-    const body = {
-      name,
-      notes: document.getElementById('edit-lot-notes').value,
-      purchaseDate: document.getElementById('edit-lot-date').value || null
-    };
-
     try {
-      await App.put(`/lots/${id}`, body);
+      await App.put(`/lots/${id}`, {
+        name:         nameEl.value.trim(),
+        notes:        document.getElementById('edit-lot-notes').value.trim(),
+        purchaseDate: dateEl.value || null
+      });
       App.toast('Lote actualizado ✅');
       App.closeModal('modal-edit-lot');
       App.loadLots();
@@ -609,9 +664,10 @@ const App = {
     }
   },
 
-  // ── Añadir artículos a lote existente ──
+  // ── Añadir artículos a lote ──────────────
 
   openAddToLotModal(lotId, lotName) {
+    V.clearAll(document.getElementById('modal-add-to-lot'));
     document.getElementById('add-to-lot-id').value = lotId;
     document.getElementById('add-to-lot-subtitle').textContent = `Lote: ${lotName}`;
     document.getElementById('add-to-lot-items-list').innerHTML = '';
@@ -628,7 +684,7 @@ const App = {
     row.className = 'lot-item-form-row';
     row.id = `atl-item-${idx}`;
     row.innerHTML = `
-      <label style="font-size:0.78rem">Nombre
+      <label style="font-size:0.78rem">Nombre *
         <input type="text" placeholder="Ej: Nintendo DS Lite" data-field="name" />
       </label>
       <label style="font-size:0.78rem">Tipo
@@ -649,34 +705,44 @@ const App = {
         </select>
       </label>
       <label style="font-size:0.78rem">Precio €
-        <input type="number" step="0.01" placeholder="0.00" data-field="price" />
+        <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price" />
       </label>
       <label style="font-size:0.78rem">Envío €
-        <input type="number" step="0.01" placeholder="0.00" value="0" data-field="shipping" />
+        <input type="number" step="0.01" min="0" placeholder="0.00" value="0" data-field="shipping" />
       </label>
       <button class="btn-icon" style="margin-top:1.4rem"
-              onclick="document.getElementById('atl-item-${idx}').remove()" title="Quitar">✕</button>
+              onclick="document.getElementById('atl-item-${idx}').remove()">✕</button>
     `;
     document.getElementById('add-to-lot-items-list').appendChild(row);
+    row.querySelector('[data-field="name"]').addEventListener('input',     function() { V.clear(this); });
+    row.querySelector('[data-field="price"]').addEventListener('input',    function() { V.clear(this); });
+    row.querySelector('[data-field="shipping"]').addEventListener('input', function() { V.clear(this); });
   },
 
   async saveAddToLot() {
     const lotId = document.getElementById('add-to-lot-id').value;
-    const rows = document.querySelectorAll('#add-to-lot-items-list .lot-item-form-row');
-
+    const rows  = document.querySelectorAll('#add-to-lot-items-list .lot-item-form-row');
     if (!rows.length) { App.toast('Añade al menos un artículo', 'error'); return; }
 
-    const items = Array.from(rows).map(r => ({
-      name: r.querySelector('[data-field="name"]').value || 'Sin nombre',
-      type: r.querySelector('[data-field="type"]').value,
-      platform: r.querySelector('[data-field="platform"]').value,
-      condition: r.querySelector('[data-field="condition"]').value,
-      purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value) || 0,
-      shippingCost: parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
-    }));
+    let ok = true;
+    rows.forEach(row => {
+      const n = row.querySelector('[data-field="name"]');
+      const p = row.querySelector('[data-field="price"]');
+      const s = row.querySelector('[data-field="shipping"]');
+      if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
+      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
+      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
+    });
+    if (!ok) return;
 
-    const invalid = items.filter(i => !i.name || i.name === 'Sin nombre');
-    if (invalid.length) { App.toast('Todos los artículos deben tener nombre', 'error'); return; }
+    const items = Array.from(rows).map(r => ({
+      name:          r.querySelector('[data-field="name"]').value.trim(),
+      type:          r.querySelector('[data-field="type"]').value,
+      platform:      r.querySelector('[data-field="platform"]').value.trim(),
+      condition:     r.querySelector('[data-field="condition"]').value,
+      purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value)    || 0,
+      shippingCost:  parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
+    }));
 
     try {
       await App.post(`/lots/${lotId}/items`, { items });
@@ -701,8 +767,34 @@ const App = {
 
   // ── Registro Rápido ─────────────────────
 
+  _validateQuickForm() {
+    const nameEl  = document.getElementById('qa-name');
+    const priceEl = document.getElementById('qa-price');
+    const shipEl  = document.getElementById('qa-shipping');
+    const dateEl  = document.getElementById('qa-date');
+
+    let ok = true;
+    ok = V.requireText(nameEl,         'El nombre')           && ok;
+    ok = V.requirePositive(priceEl,    'El precio de compra') && ok;
+    ok = V.requireNonNegative(shipEl,  'Los gastos de envío') && ok;
+    ok = V.requireDate(dateEl,         'La fecha de compra')  && ok;
+    if (!ok) return null;
+
+    return {
+      name:          nameEl.value.trim(),
+      platform:      document.getElementById('qa-platform').value.trim(),
+      type:          document.getElementById('qa-type').value,
+      condition:     document.getElementById('qa-condition').value,
+      purchasePrice: parseFloat(priceEl.value),
+      shippingCost:  parseFloat(shipEl.value),
+      purchaseDate:  dateEl.value,
+      notes:         document.getElementById('qa-notes').value.trim(),
+      isCollection:  document.getElementById('qa-collection')?.checked || false
+    };
+  },
+
   async quickAdd() {
-    const item = App.buildQuickItem();
+    const item = App._validateQuickForm();
     if (!item) return;
     try {
       const created = await App.post('/items', item);
@@ -715,11 +807,16 @@ const App = {
   },
 
   async quickAddAndSell() {
-    const item = App.buildQuickItem();
+    const item = App._validateQuickForm();
     if (!item) return;
-    const salePrice = parseFloat(prompt('¿Precio de venta?'));
-    if (!salePrice) return;
 
+    const salePriceStr = prompt('¿Precio de venta? (€)');
+    if (salePriceStr === null) return;
+    const salePrice = parseFloat(salePriceStr);
+    if (isNaN(salePrice) || salePrice <= 0) {
+      App.toast('El precio de venta debe ser mayor que 0', 'error');
+      return;
+    }
     try {
       const created = await App.post('/items', item);
       await App.post(`/items/${created.id}/sell`, { salePrice, saleDate: item.purchaseDate });
@@ -731,42 +828,27 @@ const App = {
     }
   },
 
-  buildQuickItem() {
-    const name = document.getElementById('qa-name').value;
-    const price = parseFloat(document.getElementById('qa-price').value);
-    if (!name || !price) {
-      App.showFeedback('qa-feedback', 'Nombre y precio son obligatorios', 'error');
-      return null;
-    }
-    return {
-      name,
-      platform: document.getElementById('qa-platform').value,
-      type: document.getElementById('qa-type').value,
-      condition: document.getElementById('qa-condition').value,
-      purchasePrice: price,
-      shippingCost: parseFloat(document.getElementById('qa-shipping').value) || 0,
-      purchaseDate: document.getElementById('qa-date').value,
-      notes: document.getElementById('qa-notes').value,
-      isCollection: document.getElementById('qa-collection')?.checked || false
-    };
-  },
-
   clearQuickForm() {
-    document.getElementById('qa-name').value = '';
+    V.clearAll(document.getElementById('view-quick-add'));
+    document.getElementById('qa-name').value     = '';
     document.getElementById('qa-platform').value = '';
-    document.getElementById('qa-price').value = '';
+    document.getElementById('qa-price').value    = '';
     document.getElementById('qa-shipping').value = '0';
-    document.getElementById('qa-notes').value = '';
+    document.getElementById('qa-notes').value    = '';
     document.getElementById('qa-collection').checked = false;
-    document.getElementById('qa-feedback').innerHTML = '';
+    document.getElementById('qa-feedback').innerHTML  = '';
   },
 
   async loadRecentItems() {
+    // Registrar watchers en campos del formulario rápido al entrar a la vista
+    ['qa-name','qa-price','qa-shipping','qa-date'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) V.watch(el);
+    });
     try {
       const items = await App.get('/items?isSold=false');
-      const recent = items.slice(0, 5);
       const container = document.getElementById('qa-recent');
-      container.innerHTML = recent.map(item => `
+      container.innerHTML = items.slice(0, 5).map(item => `
         <div class="recent-item">
           ${typeBadge(item.type)}
           <strong>${escapeHtml(item.name)}</strong>
@@ -782,17 +864,25 @@ const App = {
 
   async loadSettings() {
     const s = await App.get('/settings');
-    document.getElementById('settings-balance').value = s.initialBalance;
+    document.getElementById('settings-balance').value  = s.initialBalance;
     document.getElementById('settings-currency').value = s.currency;
+    V.watch(document.getElementById('settings-balance'));
+    V.watch(document.getElementById('settings-currency'));
   },
 
   async saveSettings() {
-    const body = {
-      initialBalance: parseFloat(document.getElementById('settings-balance').value) || 0,
-      currency: document.getElementById('settings-currency').value || 'EUR'
-    };
+    const balanceEl  = document.getElementById('settings-balance');
+    const currencyEl = document.getElementById('settings-currency');
+    let ok = true;
+    ok = V.requireNonNegative(balanceEl,  'El saldo inicial') && ok;
+    ok = V.requireText(currencyEl,        'La moneda')        && ok;
+    if (!ok) return;
+
     try {
-      await App.put('/settings', body);
+      await App.put('/settings', {
+        initialBalance: parseFloat(balanceEl.value) || 0,
+        currency:       currencyEl.value.trim().toUpperCase()
+      });
       App.showFeedback('settings-feedback', 'Ajustes guardados ✅', 'success');
     } catch (e) {
       App.showFeedback('settings-feedback', 'Error guardando', 'error');
@@ -801,13 +891,11 @@ const App = {
 
   // ── Exportar ─────────────────────────────
 
-  exportExcel() {
-    window.location.href = '/api/export/excel';
-  },
+  exportExcel() { window.location.href = '/api/export/excel'; },
 
   // ── Modal helpers ────────────────────────
 
-  openModal(id) { document.getElementById(id).classList.add('open'); },
+  openModal(id)  { document.getElementById(id).classList.add('open'); },
   closeModal(id) { document.getElementById(id).classList.remove('open'); },
 
   // ── HTTP helpers ─────────────────────────
@@ -817,27 +905,20 @@ const App = {
     if (!r.ok) throw new Error(r.status);
     return r.json();
   },
-
   async post(path, body) {
     const r = await fetch(API + path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     if (!r.ok) throw new Error(r.status);
     return r.json().catch(() => null);
   },
-
   async put(path, body) {
     const r = await fetch(API + path, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     if (!r.ok) throw new Error(r.status);
     return r.json();
   },
-
   async delete(path) {
     const r = await fetch(API + path, { method: 'DELETE' });
     if (!r.ok) throw new Error(r.status);
@@ -876,30 +957,19 @@ function fmtDate(d) {
 }
 
 function typeBadge(type) {
-  const map = {
-    Console: ['badge-console', '🎮'],
-    VideoGame: ['badge-game', '💿'],
-    Accessory: ['badge-accessory', '🔌']
-  };
-  const [cls, icon] = map[type] || ['badge', '?'];
-  return `<span class="badge ${cls}">${icon} ${type === 'Console' ? 'Consola' : type === 'VideoGame' ? 'Juego' : 'Accesorio'}</span>`;
+  const map = { Console: ['badge-console','🎮'], VideoGame: ['badge-game','💿'], Accessory: ['badge-accessory','🔌'] };
+  const [cls, icon] = map[type] || ['badge','?'];
+  return `<span class="badge ${cls}">${icon} ${type==='Console'?'Consola':type==='VideoGame'?'Juego':'Accesorio'}</span>`;
 }
 
 function condBadge(cond) {
-  const map = {
-    New: ['badge-sold', '✨ Nuevo'],
-    Used: ['badge-stock', '📦 Usado'],
-    NeedsRepair: ['badge-repair', '🔧 Reparar']
-  };
+  const map = { New: ['badge-sold','✨ Nuevo'], Used: ['badge-stock','📦 Usado'], NeedsRepair: ['badge-repair','🔧 Reparar'] };
   const [cls, label] = map[cond] || ['badge', cond];
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
 function escapeHtml(str) {
   return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }

@@ -189,7 +189,7 @@ body {
 .stat-sublabel { font-size: 0.72rem; color: var(--text3); margin-top: 3px; }
 
 .stat-card.invested .stat-value { color: var(--accent2); }
-.stat-card.revenue .stat-value { color: var(--accent3); }
+.stat-card.revenue .stat-value  { color: var(--accent3); }
 .stat-card.collection .stat-value { color: var(--accent3); }
 
 /* ── CHARTS ── */
@@ -259,17 +259,17 @@ body {
   font-weight: 600;
 }
 
-.badge-sold { background: rgba(0,200,81,0.15); color: var(--green); }
-.badge-stock { background: rgba(255,214,10,0.12); color: var(--accent3); }
-.badge-repair { background: rgba(255,68,68,0.12); color: var(--red); }
-.badge-console { background: rgba(0,255,136,0.1); color: var(--accent); }
-.badge-game { background: rgba(255,107,53,0.1); color: var(--accent2); }
+.badge-sold      { background: rgba(0,200,81,0.15);  color: var(--green); }
+.badge-stock     { background: rgba(255,214,10,0.12); color: var(--accent3); }
+.badge-repair    { background: rgba(255,68,68,0.12);  color: var(--red); }
+.badge-console   { background: rgba(0,255,136,0.1);   color: var(--accent); }
+.badge-game      { background: rgba(255,107,53,0.1);  color: var(--accent2); }
 .badge-accessory { background: rgba(136,136,136,0.1); color: var(--text2); }
 .badge-collection {
   background: rgba(255,214,10,0.15);
   color: var(--accent3);
   border: 1px solid rgba(255,214,10,0.3);
-  margin-right: 4px; /* ← espacio entre el badge y el nombre del artículo */
+  margin-right: 4px;
 }
 
 .badge { background: rgba(100,100,100,0.2); color: var(--text2); }
@@ -387,6 +387,29 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
 }
 
+/* ── VALIDACIÓN — estilos de error inline ── */
+
+/* Campo con error: borde rojo */
+input.field-error,
+select.field-error,
+textarea.field-error {
+  border-color: var(--red) !important;
+  background: rgba(255, 68, 68, 0.06);
+}
+
+/* Mensaje de error bajo el campo */
+.field-hint {
+  font-size: 0.74rem;
+  font-weight: 500;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.field-hint.error {
+  color: var(--red);
+}
+
+/* ────────────────────────────────────── */
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -419,17 +442,15 @@ input:focus, select:focus, textarea:focus {
   min-height: 1.2rem;
 }
 .feedback-msg.success { color: var(--green); }
-.feedback-msg.error { color: var(--red); }
+.feedback-msg.error   { color: var(--red); }
 
-.quick-history {
-    margin-top: 3rem;
-}
+.quick-history { margin-top: 3rem; }
 
 .recent-list {
-    margin-top: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .recent-item {
@@ -473,7 +494,6 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
   flex: 1;
   min-width: 0;
-  /* Permite hasta 2 líneas antes de truncar */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -482,16 +502,13 @@ input:focus, select:focus, textarea:focus {
 }
 
 .lot-card-actions {
-  /* Ancho fijo para que nunca se comprima ni parta en líneas */
   display: flex;
   gap: 4px;
   align-items: center;
   flex-shrink: 0;
 }
 
-.lot-card-actions .btn-sm {
-  white-space: nowrap;
-}
+.lot-card-actions .btn-sm { white-space: nowrap; }
 
 .lot-card-meta {
   font-size: 0.78rem;
@@ -567,14 +584,12 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border);
 }
 
-/* Nombre ocupa toda la primera fila menos el botón X */
 .lot-item-form-row > label:first-child {
   grid-column: 1 / 6;
   grid-row: 1;
   min-width: 0;
 }
 
-/* Botón X: esquina superior derecha */
 .lot-item-form-row > button {
   grid-column: 6;
   grid-row: 1;
@@ -582,7 +597,6 @@ input:focus, select:focus, textarea:focus {
   margin-top: 0 !important;
 }
 
-/* Los campos de la fila 2 (Tipo, Plataforma, Condición, Precio, Envío) */
 .lot-item-form-row > label:not(:first-child) {
   grid-row: 2;
   min-width: 0;
@@ -647,7 +661,7 @@ input:focus, select:focus, textarea:focus {
   font-size: 1.1rem;
 }
 
-.modal-body { padding: 1.5rem; overflow-x: hidden; }
+.modal-body   { padding: 1.5rem; overflow-x: hidden; }
 
 .modal-footer {
   display: flex;
@@ -699,9 +713,8 @@ input:focus, select:focus, textarea:focus {
 /* ── PROFIT COLORS ── */
 .positive { color: var(--green); }
 .negative { color: var(--red); }
-.neutral { color: var(--text2); }
+.neutral  { color: var(--text2); }
 .row-collection { background: rgba(255,214,10,0.04) !important; }
-.row-sold { background: rgba(255,68,68,0.04) !important; }
 
 /* ── TOAST ── */
 .toast {
@@ -719,11 +732,11 @@ input:focus, select:focus, textarea:focus {
   transition: all 0.3s ease;
   max-width: 300px;
 }
-.toast.show { transform: translateY(0); opacity: 1; }
+.toast.show    { transform: translateY(0); opacity: 1; }
 .toast.success { border-color: var(--green); color: var(--green); }
-.toast.error { border-color: var(--red); color: var(--red); }
+.toast.error   { border-color: var(--red);   color: var(--red); }
 
-/* Breakpoint medio: compactar fila 2 del form de lote */
+/* Breakpoint medio */
 @media (max-width: 680px) {
   .lot-item-form-row {
     grid-template-columns: 1fr 1fr auto;
@@ -743,9 +756,7 @@ input:focus, select:focus, textarea:focus {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
+  .sidebar { transform: translateX(-100%); }
   .sidebar.open {
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(0,0,0,0.8);
@@ -755,26 +766,13 @@ input:focus, select:focus, textarea:focus {
     margin-left: 0;
     padding: 4.5rem 1rem 1rem;
   }
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  .lot-item-form-row {
-    grid-template-columns: 1fr 1fr auto;
-  }
-  .lot-item-form-row > label:first-child {
-    grid-column: 1 / 3;
-  }
+  .stats-grid   { grid-template-columns: repeat(2, 1fr); }
+  .charts-row   { grid-template-columns: 1fr; }
+  .form-row     { grid-template-columns: 1fr; }
+  .lot-item-form-row { grid-template-columns: 1fr 1fr auto; }
+  .lot-item-form-row > label:first-child { grid-column: 1 / 3; }
   .data-table thead th:nth-child(n+5),
-  .data-table tbody td:nth-child(n+5) {
-    display: none;
-  }
-  /* Mostrar columnas importantes en móvil */
+  .data-table tbody td:nth-child(n+5) { display: none; }
   .data-table thead th:nth-child(1),
   .data-table thead th:nth-child(3),
   .data-table thead th:nth-child(6),
@@ -784,7 +782,5 @@ input:focus, select:focus, textarea:focus {
   .data-table tbody td:nth-child(3),
   .data-table tbody td:nth-child(6),
   .data-table tbody td:nth-child(8),
-  .data-table tbody td:nth-child(10) {
-    display: table-cell;
-  }
+  .data-table tbody td:nth-child(10) { display: table-cell; }
 }
