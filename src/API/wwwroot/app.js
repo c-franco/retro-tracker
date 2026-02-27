@@ -1,5 +1,5 @@
 /**
- * Retro Tracker — Frontend SPA
+ * RetroGame Tracker — Frontend SPA
  * Vanilla JS, sin dependencias externas (excepto Chart.js)
  */
 
@@ -250,10 +250,11 @@ const App = {
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
       const collectionBadge = item.isCollection
-        ? '<span class="badge badge-collection">⭐ Colección</span> '
+        ? '<span class="badge badge-collection" title="Colección personal">⭐</span> '
         : '';
 
-      return `<tr class="${item.isCollection ? 'row-collection' : ''}">
+      const rowClass = item.isCollection ? 'row-collection' : item.isSold ? 'row-sold' : '';
+      return `<tr class="${rowClass}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td>${typeBadge(item.type)}</td>
         <td><span class="badge">${item.platform || '—'}</span></td>
@@ -271,7 +272,7 @@ const App = {
                 ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>`
                 : ''
             }
-            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
+            ${!item.isSold ? `<button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>` : ''}
             <button class="btn-icon" title="Editar" onclick="App.openItemModal(${item.id})">✏️</button>
             <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>

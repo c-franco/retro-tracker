@@ -127,6 +127,7 @@ public class ItemService
         item.IsSold = true;
         item.SalePrice = req.SalePrice;
         item.SaleDate = req.SaleDate ?? DateTime.UtcNow;
+        item.IsCollection = false; // Al vender ya no forma parte de la colección
 
         await _db.SaveChangesAsync();
         return ToDto(item);
