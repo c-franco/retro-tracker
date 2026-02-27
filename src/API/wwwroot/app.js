@@ -35,141 +35,41 @@ function getPlatforms() {
   return DEFAULT_PLATFORMS;
 }
 
-/**
- * Custom dropdown de plataforma.
- * - La lista flota anclada al body (z-index 9999) → nunca queda por debajo de modales.
- * - Idempotente: llamarlo varias veces sobre el mismo select solo refresca las opciones.
- */
-function buildPlatformSelect(selectEl) {
-  if (!selectEl) return;
-
-  if (selectEl._pdBuilt) {
-    // Ya construido: solo refrescar opciones y texto del botón
-    const platforms = getPlatforms();
-    const list = selectEl._pdList;
-    list.innerHTML = '<div class="platform-option placeholder" data-value="">— Selecciona —</div>' +
-      platforms.map(p => `<div class="platform-option${selectEl.value===p?' selected':''}" data-value="${p}">${p}</div>`).join('');
-    selectEl._pdDisplay.textContent = selectEl.value || '— Selecciona —';
-    return;
-  }
-  selectEl._pdBuilt = true;
-
-  /* ── estructura DOM ── */
-  const wrapper = document.createElement('div');
-  wrapper.className = 'platform-wrapper';
-  selectEl.parentNode.insertBefore(wrapper, selectEl);
-  wrapper.appendChild(selectEl);
-  selectEl.style.display = 'none';
-
-  const display = document.createElement('div');
-  display.className = 'platform-display';
-  display.tabIndex = 0;
-  wrapper.insertBefore(display, selectEl);
-
-  // Lista en body para z-index libre
-  const list = document.createElement('div');
-  list.className = 'platform-list';
-  document.body.appendChild(list);
-  selectEl._pdList    = list;
-  selectEl._pdDisplay = display;
-
-  /* ── helpers ── */
-  function getOption(value) { return list.querySelector(`[data-value="${value}"]`); }
-
-  function reposition() {
-    const r = display.getBoundingClientRect();
-    list.style.left  = r.left  + 'px';
-    list.style.top   = (r.bottom + 4) + 'px';
-    list.style.width = r.width + 'px';
-  }
-
-  function refreshList() {
-    const platforms = getPlatforms();
-    list.innerHTML = '<div class="platform-option placeholder" data-value="">— Selecciona —</div>' +
-      platforms.map(p => `<div class="platform-option${selectEl.value===p?' selected':''}" data-value="${p}">${p}</div>`).join('');
-  }
-
-  function syncDisplay() {
-    display.textContent = selectEl.value || '— Selecciona —';
-    if (selectEl.classList.contains('field-error')) display.classList.add('field-error');
-    else display.classList.remove('field-error');
-  }
-
-  function openList() {
-    // Cerrar cualquier otro abierto
-    document.querySelectorAll('.platform-list.open').forEach(l => l.classList.remove('open'));
-    document.querySelectorAll('.platform-display.open').forEach(d => d.classList.remove('open'));
-    refreshList();
-    reposition();
-    list.classList.add('open');
-    display.classList.add('open');
-    const sel = getOption(selectEl.value);
-    if (sel) sel.scrollIntoView({ block: 'nearest' });
-  }
-
-  function closeList() {
-    list.classList.remove('open');
-    display.classList.remove('open');
-  }
-
-  function pickValue(value) {
-    selectEl.value = value;
-    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-    display.textContent = value || '— Selecciona —';
-    if (value) {
-      display.classList.remove('field-error');
-      selectEl.classList.remove('field-error');
-      wrapper.querySelectorAll('.field-hint.error').forEach(h => h.remove());
-    }
-    closeList();
-  }
-
-  /* ── eventos ── */
-  // Usar mousedown para que se resuelva antes del blur/click del documento
-  display.addEventListener('mousedown', e => {
-    e.preventDefault(); // evita que el foco cambie y dispare cierre prematuro
-    list.classList.contains('open') ? closeList() : openList();
-  });
-  display.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); list.classList.contains('open') ? closeList() : openList(); }
-    if (e.key === 'Escape') closeList();
-  });
-  list.addEventListener('mousedown', e => {
-    e.preventDefault(); // evita cierre por blur antes de registrar la selección
-    const opt = e.target.closest('.platform-option');
-    if (opt) pickValue(opt.dataset.value);
-  });
-  // Cerrar al hacer click fuera (mousedown en document, que ocurre antes del click)
-  document.addEventListener('mousedown', e => {
-    if (!wrapper.contains(e.target) && !list.contains(e.target)) closeList();
-  });
-
-  // Sincronizar error state si cambia desde fuera (V.error / V.clear)
-  new MutationObserver(syncDisplay)
-    .observe(selectEl, { attributes: true, attributeFilter: ['class'] });
-
-  syncDisplay();
-}
-
 function populatePlatformSelects() {
   const platforms = getPlatforms();
+  const options = platforms.map(p => `<option value="${p}">${p}</option>`).join('');
 
-  // Filtro de inventario: select nativo (sin custom dropdown, no necesita límite)
+  // Filtro de inventario: incluye opción vacía "Todas"
   const filterSel = document.getElementById('filter-platform');
   if (filterSel) {
     const current = filterSel.value;
-    filterSel.innerHTML = '<option value="">Todas las plataformas</option>' +
-      platforms.map(p => `<option${p === current ? ' selected' : ''}>${p}</option>`).join('');
+    filterSel.innerHTML = '<option value="">Todas las plataformas</option>' + options;
+    if (current) filterSel.value = current;
   }
 
-  // Registro rápido, modal artículo y filas de lote — custom dropdown idempotente
-  ['qa-platform', 'item-platform'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) buildPlatformSelect(el);
-  });
+  // Registro rápido
+  const qaSel = document.getElementById('qa-platform');
+  if (qaSel) {
+    const current = qaSel.value;
+    qaSel.innerHTML = options;
+    qaSel.value = (current && platforms.includes(current)) ? current : platforms[0] || '';
+  }
 
+  // Modal artículo
+  const itemSel = document.getElementById('item-platform');
+  if (itemSel) {
+    const current = itemSel.value;
+    itemSel.innerHTML = options;
+    itemSel.value = (current && platforms.includes(current)) ? current : platforms[0] || '';
+  }
+
+  // Filas dinámicas de lote
   document.querySelectorAll('[data-field="platform"]').forEach(el => {
-    if (el.tagName === 'SELECT') buildPlatformSelect(el);
+    if (el.tagName === 'SELECT') {
+      const current = el.value;
+      el.innerHTML = options;
+      el.value = (current && platforms.includes(current)) ? current : platforms[0] || '';
+    }
   });
 }
 
@@ -429,7 +329,7 @@ const App = {
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
       const collectionBadge = item.isCollection
-        ? '<span class="badge badge-collection">⭐ Colección</span>&nbsp;'
+        ? '<span class="badge badge-collection">⭐</span>&nbsp;'
         : '';
       return `<tr class="${item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
@@ -468,13 +368,11 @@ const App = {
     lotSel.innerHTML = '<option value="">Sin lote</option>' +
       lots.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
 
-    populatePlatformSelects();
-
     if (itemId) {
       const item = await App.get(`/items/${itemId}`);
       document.getElementById('item-id').value             = item.id;
       document.getElementById('item-name').value           = item.name;
-      document.getElementById('item-platform').value       = item.platform || '';
+      document.getElementById('item-platform').value       = item.platform || getPlatforms()[0] || '';
       document.getElementById('item-type').value           = item.type;
       document.getElementById('item-condition').value      = item.condition;
       document.getElementById('item-purchase-price').value = item.purchasePrice;
@@ -492,6 +390,8 @@ const App = {
       document.getElementById('item-lot-id').value         = '';
       document.getElementById('item-is-collection').checked = false;
     }
+
+    populatePlatformSelects();
     ['item-name','item-purchase-price','item-shipping','item-purchase-date'].forEach(id =>
       V.watch(document.getElementById(id))
     );
@@ -1012,8 +912,7 @@ const App = {
     V.clearAll(document.getElementById('view-quick-add'));
     document.getElementById('qa-name').value     = '';
     const qaPlatSel = document.getElementById('qa-platform');
-    qaPlatSel.value = '';
-    buildPlatformSelect(qaPlatSel); // refresca el display
+    qaPlatSel.value = getPlatforms()[0] || '';
     document.getElementById('qa-price').value    = '';
     document.getElementById('qa-shipping').value = '0';
     document.getElementById('qa-notes').value    = '';
@@ -1061,6 +960,11 @@ const App = {
       return;
     }
     localStorage.setItem('rtPlatforms', JSON.stringify(platforms));
+    // Resetear selects para que tomen el nuevo primer valor
+    ['qa-platform','item-platform'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
     populatePlatformSelects();
     App.showFeedback('settings-platforms-feedback', 'Plataformas guardadas ✅', 'success');
   },
