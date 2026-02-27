@@ -1,5 +1,5 @@
 /**
- * RetroGame Tracker — Frontend SPA
+ * Retro Tracker — Frontend SPA
  * Vanilla JS, sin dependencias externas (excepto Chart.js)
  */
 
@@ -131,45 +131,37 @@ const App = {
     const ctx = document.getElementById('chartPlatform').getContext('2d');
     if (chartPlatform) chartPlatform.destroy();
 
-    // Colores únicos por plataforma — familias con tonos distintos (Opción A)
     const platformColors = {
-      // Nintendo handheld
-      'GB':      '#5a8a00',  // Verde Game Boy original
-      'GBC':     '#7ab800',  // Verde claro Game Boy Color
-      'GBA':     '#9fd600',  // Verde lima GBA
-      'DS':      '#c8f000',  // Verde amarillento DS
-      '3DS':     '#f0e000',  // Amarillo 3DS
-      // Nintendo consola
-      'NES':     '#e84000',  // Rojo ladrillo NES
-      'SNES':    '#cc2200',  // Rojo oscuro SNES
-      'N64':     '#a80000',  // Rojo muy oscuro N64
-      'GCN':     '#6a0dad',  // Morado GameCube
-      'Wii':     '#009ac7',  // Cyan Wii
-      'WiiU':    '#005f7a',  // Cyan oscuro Wii U
-      'Switch':  '#e4000f',  // Rojo vivo Switch
-      // PlayStation
-      'PS1':     '#003087',  // Azul muy oscuro
-      'PS2':     '#0050b3',  // Azul medio
-      'PS3':     '#0077cc',  // Azul claro
-      'PS4':     '#0099ee',  // Azul brillante
-      'PS5':     '#00bbff',  // Azul cielo
-      'PSP':     '#00aaff',  // Azul PSP
-      'PSV':     '#4400cc',  // Violeta PS Vita
-      // Xbox
-      'Xbox':    '#107c10',  // Verde oscuro Xbox
-      'X360':    '#52b043',  // Verde medio 360
-      'XOne':    '#2d7a2d',  // Verde XOne
-      // Sega
-      'Genesis': '#1a1aff',  // Azul Sega
-      'Saturn':  '#5555ff',  // Azul medio Saturn
-      'DC':      '#ff8800',  // Naranja Dreamcast
-      'GG':      '#ff5500',  // Naranja Game Gear
-      // Otro
-      'PC':      '#888888',  // Gris PC
-      'Otro':    '#444444',  // Gris oscuro
+      'GB':      '#5a8a00',
+      'GBC':     '#7ab800',
+      'GBA':     '#9fd600',
+      'DS':      '#c8f000',
+      '3DS':     '#f0e000',
+      'NES':     '#e84000',
+      'SNES':    '#cc2200',
+      'N64':     '#a80000',
+      'GCN':     '#6a0dad',
+      'Wii':     '#009ac7',
+      'WiiU':    '#005f7a',
+      'Switch':  '#e4000f',
+      'PS1':     '#003087',
+      'PS2':     '#0050b3',
+      'PS3':     '#0077cc',
+      'PS4':     '#0099ee',
+      'PS5':     '#00bbff',
+      'PSP':     '#00aaff',
+      'PSV':     '#4400cc',
+      'Xbox':    '#107c10',
+      'X360':    '#52b043',
+      'XOne':    '#2d7a2d',
+      'Genesis': '#1a1aff',
+      'Saturn':  '#5555ff',
+      'DC':      '#ff8800',
+      'GG':      '#ff5500',
+      'PC':      '#888888',
+      'Otro':    '#444444',
     };
 
-    // Fallback para plataformas no definidas — colores que no se solapan con los de arriba
     const fallback = ['#ff00aa','#00ffcc','#ff99ff','#ffcc00','#cc00ff','#00ff66'];
     let fallbackIdx = 0;
 
@@ -242,7 +234,7 @@ const App = {
   renderInventoryTable(items) {
     const tbody = document.querySelector('#inventory-table tbody');
     if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#555;padding:2rem">Sin artículos</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">Sin artículos</td></tr>';
       return;
     }
     tbody.innerHTML = items.map(item => {
@@ -250,15 +242,13 @@ const App = {
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
       const collectionBadge = item.isCollection
-        ? '<span class="badge badge-collection" title="Colección personal">⭐</span> '
+        ? '<span class="badge badge-collection">⭐ Colección</span>&nbsp;'
         : '';
 
-      const rowClass = item.isCollection ? 'row-collection' : item.isSold ? 'row-sold' : '';
-      return `<tr class="${rowClass}">
+      return `<tr class="${item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td>${typeBadge(item.type)}</td>
         <td><span class="badge">${item.platform || '—'}</span></td>
-        <td>${condBadge(item.condition)}</td>
         <td>${item.lotName ? `<span class="badge">${escapeHtml(item.lotName)}</span>` : '<span style="color:#555">—</span>'}</td>
         <td class="neutral">${fmt(item.totalCost)}</td>
         <td>${item.salePrice ? fmt(item.salePrice) : '<span style="color:#555">—</span>'}</td>
@@ -272,7 +262,7 @@ const App = {
                 ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>`
                 : ''
             }
-            ${!item.isSold ? `<button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>` : ''}
+            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
             <button class="btn-icon" title="Editar" onclick="App.openItemModal(${item.id})">✏️</button>
             <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>
@@ -404,7 +394,6 @@ const App = {
     }
   },
 
-
   async toggleCollection(id, currentValue) {
     try {
       await App.put(`/items/${id}`, { isCollection: !currentValue });
@@ -495,7 +484,6 @@ const App = {
     document.getElementById('lot-items-list').innerHTML = '';
     document.getElementById('lot-total-info').innerHTML = '';
 
-    // Añadir 2 items por defecto
     App.addLotItem();
     App.addLotItem();
     App.openModal('modal-lot');
@@ -590,8 +578,7 @@ const App = {
     }
   },
 
-
-  // ── Editar lote (nombre, fecha, notas) ──
+  // ── Editar lote ──────────────────────────
 
   openEditLotModal(lotId, name, date, notes) {
     document.getElementById('edit-lot-id').value = lotId;
@@ -629,7 +616,7 @@ const App = {
     document.getElementById('add-to-lot-subtitle').textContent = `Lote: ${lotName}`;
     document.getElementById('add-to-lot-items-list').innerHTML = '';
     App._addToLotCount = 0;
-    App.addItemToLotForm();  // Empezar con 1 fila vacía
+    App.addItemToLotForm();
     App.openModal('modal-add-to-lot');
   },
 

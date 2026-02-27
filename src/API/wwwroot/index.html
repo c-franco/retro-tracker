@@ -42,7 +42,6 @@
     <section id="view-dashboard" class="view active">
       <div class="view-header">
         <h1>Dashboard</h1>
-
       </div>
 
       <div class="stats-grid" id="dash-stats">
@@ -156,7 +155,7 @@
         <table class="data-table" id="inventory-table">
           <thead>
             <tr>
-              <th>Artículo</th><th>Tipo</th><th>Plataforma</th><th>Estado</th>
+              <th>Artículo</th><th>Tipo</th><th>Plataforma</th>
               <th>Lote</th><th>Coste</th><th>Venta</th><th>Beneficio</th>
               <th>Fecha</th><th>Acciones</th>
             </tr>
@@ -179,6 +178,7 @@
     <section id="view-quick-add" class="view">
       <div class="view-header">
         <h1>⚡ Registro Rápido</h1>
+        <p class="subtitle"></p>
       </div>
 
       <div class="quick-form-card">
@@ -379,7 +379,6 @@
     </div>
   </div>
 
-
   <!-- ──── MODAL: AÑADIR ARTÍCULOS A LOTE ──── -->
   <div class="modal-overlay" id="modal-add-to-lot" onclick="App.closeModal('modal-add-to-lot')">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
@@ -406,7 +405,6 @@
       </div>
     </div>
   </div>
-
 
   <!-- ──── MODAL: EDITAR LOTE ──── -->
   <div class="modal-overlay" id="modal-edit-lot" onclick="App.closeModal('modal-edit-lot')">

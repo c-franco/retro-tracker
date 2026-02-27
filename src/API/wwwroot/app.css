@@ -265,7 +265,12 @@ body {
 .badge-console { background: rgba(0,255,136,0.1); color: var(--accent); }
 .badge-game { background: rgba(255,107,53,0.1); color: var(--accent2); }
 .badge-accessory { background: rgba(136,136,136,0.1); color: var(--text2); }
-.badge-collection { background: rgba(255,214,10,0.15); color: var(--accent3); border: 1px solid rgba(255,214,10,0.3); }
+.badge-collection {
+  background: rgba(255,214,10,0.15);
+  color: var(--accent3);
+  border: 1px solid rgba(255,214,10,0.3);
+  margin-right: 4px; /* ← espacio entre el badge y el nombre del artículo */
+}
 
 .badge { background: rgba(100,100,100,0.2); color: var(--text2); }
 
@@ -417,13 +422,14 @@ input:focus, select:focus, textarea:focus {
 .feedback-msg.error { color: var(--red); }
 
 .quick-history {
-  margin-top: 3rem;
+    margin-top: 3rem;
 }
+
 .recent-list {
-  margin-top: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .recent-item {
