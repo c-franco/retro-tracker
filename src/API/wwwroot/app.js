@@ -548,13 +548,14 @@ const App = {
     row.querySelector('[data-field="name"]').addEventListener('input', function() { V.clear(this); });
     row.querySelector('[data-field="price"]').addEventListener('input', function() { V.clear(this); });
     row.querySelector('[data-field="shipping"]').addEventListener('input', function() { V.clear(this); });
+    App.recalcLotItems();
   },
 
   recalcLotItems() {
     const totalPrice    = parseFloat(document.getElementById('lot-price').value) || 0;
     const totalShipping = parseFloat(document.getElementById('lot-shipping').value) || 0;
     const rows = document.querySelectorAll('#lot-items-list .lot-item-form-row');
-    if (!rows.length) return;
+    if (!rows.length) { document.getElementById("lot-total-info").innerHTML = "<strong>Total artículos: 0</strong>"; return; }
 
     const priceSum = Array.from(rows)
       .map(r => parseFloat(r.querySelector('[data-field="price"]')?.value) || 0)
@@ -892,6 +893,34 @@ const App = {
   // ── Exportar ─────────────────────────────
 
   exportExcel() { window.location.href = '/api/export/excel'; },
+
+  async importExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    App.toast('Importando...');
+    try {
+      const r = await fetch('/api/import/excel', { method: 'POST', body: formData });
+      const data = await r.json();
+
+      if (r.ok) {
+        App.toast(data.message, 'success');
+        App.loadInventory();
+        App.loadDashboard();
+      } else {
+        const lines = (data.errors || [])
+          .map(e => `Fila ${e.fila} · ${e.columna}: "${e.valor}" — ${e.motivo}`)
+          .join('\n');
+        alert('Importación cancelada.\n\n' + (lines || data.error));
+      }
+    } catch (e) {
+      App.toast('Error de conexión al importar', 'error');
+    }
+  },
 
   // ── Modal helpers ────────────────────────
 

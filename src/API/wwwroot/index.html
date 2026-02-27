@@ -24,7 +24,9 @@
       <li><a href="#" class="nav-link" data-view="settings">⚙️ Ajustes</a></li>
     </ul>
     <div class="sidebar-bottom">
-      <button class="btn-export" onclick="App.exportExcel()">📥 Exportar Excel</button>
+      <button class="btn-export" onclick="App.exportExcel()" style="margin-bottom:0.5rem">📥 Exportar Excel</button>
+      <button class="btn-export" onclick="document.getElementById('import-file-input').click()">📤 Importar Excel</button>
+      <input type="file" id="import-file-input" accept=".xlsx" style="display:none" onchange="App.importExcel(this)" />
     </div>
   </nav>
 

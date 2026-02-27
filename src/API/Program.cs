@@ -23,6 +23,7 @@ builder.Services.AddScoped<ItemService>();
 builder.Services.AddScoped<LotService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<ExportService>();
+builder.Services.AddScoped<ImportService>();
 
 // CORS para el frontend
 builder.Services.AddCors(options =>
@@ -58,7 +59,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
-    DataSeeder.Seed(db);
+    //DataSeeder.Seed(db);
 }
 
 app.Run();
