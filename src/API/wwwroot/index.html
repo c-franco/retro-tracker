@@ -132,12 +132,6 @@
                oninput="App.loadInventory()" />
         <select id="filter-platform" onchange="App.loadInventory()">
           <option value="">Todas las plataformas</option>
-          <option>DS</option><option>3DS</option><option>Switch</option>
-          <option>GBA</option><option>GB</option><option>PSP</option>
-          <option>PS1</option><option>PS2</option><option>PS3</option>
-          <option>Xbox</option><option>Wii</option><option>WiiU</option>
-          <option>NES</option><option>SNES</option><option>N64</option>
-          <option>GCN</option><option>Genesis</option><option>Otro</option>
         </select>
         <select id="filter-type" onchange="App.loadInventory()">
           <option value="">Todos los tipos</option>
@@ -188,13 +182,8 @@
           <label>Nombre *
             <input type="text" id="qa-name" placeholder="Ej: Nintendo DSi Azul" />
           </label>
-          <label>Plataforma
-            <input type="text" id="qa-platform" placeholder="DS, Switch, 3DS…" list="platforms-list" />
-            <datalist id="platforms-list">
-              <option>DS</option><option>3DS</option><option>Switch</option>
-              <option>GBA</option><option>PSP</option><option>PS2</option>
-              <option>Wii</option><option>SNES</option>
-            </datalist>
+          <label>Plataforma *
+            <select id="qa-platform"></select>
           </label>
         </div>
         <div class="form-row">
@@ -260,6 +249,13 @@
         <button class="btn-primary" onclick="App.saveSettings()">Guardar</button>
         <div id="settings-feedback" class="feedback-msg"></div>
       </div>
+      <div class="settings-card" style="margin-top:1.5rem">
+        <h3>Plataformas</h3>
+        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Una plataforma por línea. Se usan en todos los desplegables de la aplicación.</p>
+        <textarea id="settings-platforms" rows="10" style="font-family:var(--font-mono);font-size:0.82rem;resize:vertical"></textarea>
+        <button class="btn-primary" onclick="App.savePlatforms()">Guardar plataformas</button>
+        <div id="settings-platforms-feedback" class="feedback-msg"></div>
+      </div>
     </section>
 
   </main>
@@ -275,7 +271,7 @@
         <input type="hidden" id="item-id" />
         <div class="form-row">
           <label>Nombre *<input type="text" id="item-name" /></label>
-          <label>Plataforma<input type="text" id="item-platform" list="platforms-list" /></label>
+          <label>Plataforma *<select id="item-platform"></select></label>
         </div>
         <div class="form-row">
           <label>Tipo *
@@ -308,7 +304,7 @@
         <label>Notas<input type="text" id="item-notes" /></label>
         <label class="toggle-label" style="margin-top:0.8rem;flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer">
           <input type="checkbox" id="item-is-collection" style="width:auto;accent-color:var(--accent3)" />
-          <span>⭐ Guardar en colección personal</span>
+          <span>⭐ Guardar en colección personal (no para venta)</span>
         </label>
       </div>
       <div class="modal-footer">

@@ -12,6 +12,168 @@ let lotItemCount = 0;
 let recentItems = [];
 
 // ═══════════════════════════════════════════
+// PLATAFORMAS
+// ═══════════════════════════════════════════
+
+const DEFAULT_PLATFORMS = [
+  'DS','3DS','Switch','GBA','GBC','GB',
+  'PSP','PS1','PS2','PS3','PS4','PS5','PSV',
+  'Xbox','X360','XOne',
+  'Wii','WiiU','NES','SNES','N64','GCN',
+  'Genesis','Saturn','DC','GG',
+  'PC','Otro'
+];
+
+function getPlatforms() {
+  const stored = localStorage.getItem('rtPlatforms');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch(e) {}
+  }
+  return DEFAULT_PLATFORMS;
+}
+
+/**
+ * Custom dropdown de plataforma.
+ * - La lista flota anclada al body (z-index 9999) → nunca queda por debajo de modales.
+ * - Idempotente: llamarlo varias veces sobre el mismo select solo refresca las opciones.
+ */
+function buildPlatformSelect(selectEl) {
+  if (!selectEl) return;
+
+  if (selectEl._pdBuilt) {
+    // Ya construido: solo refrescar opciones y texto del botón
+    const platforms = getPlatforms();
+    const list = selectEl._pdList;
+    list.innerHTML = '<div class="platform-option placeholder" data-value="">— Selecciona —</div>' +
+      platforms.map(p => `<div class="platform-option${selectEl.value===p?' selected':''}" data-value="${p}">${p}</div>`).join('');
+    selectEl._pdDisplay.textContent = selectEl.value || '— Selecciona —';
+    return;
+  }
+  selectEl._pdBuilt = true;
+
+  /* ── estructura DOM ── */
+  const wrapper = document.createElement('div');
+  wrapper.className = 'platform-wrapper';
+  selectEl.parentNode.insertBefore(wrapper, selectEl);
+  wrapper.appendChild(selectEl);
+  selectEl.style.display = 'none';
+
+  const display = document.createElement('div');
+  display.className = 'platform-display';
+  display.tabIndex = 0;
+  wrapper.insertBefore(display, selectEl);
+
+  // Lista en body para z-index libre
+  const list = document.createElement('div');
+  list.className = 'platform-list';
+  document.body.appendChild(list);
+  selectEl._pdList    = list;
+  selectEl._pdDisplay = display;
+
+  /* ── helpers ── */
+  function getOption(value) { return list.querySelector(`[data-value="${value}"]`); }
+
+  function reposition() {
+    const r = display.getBoundingClientRect();
+    list.style.left  = r.left  + 'px';
+    list.style.top   = (r.bottom + 4) + 'px';
+    list.style.width = r.width + 'px';
+  }
+
+  function refreshList() {
+    const platforms = getPlatforms();
+    list.innerHTML = '<div class="platform-option placeholder" data-value="">— Selecciona —</div>' +
+      platforms.map(p => `<div class="platform-option${selectEl.value===p?' selected':''}" data-value="${p}">${p}</div>`).join('');
+  }
+
+  function syncDisplay() {
+    display.textContent = selectEl.value || '— Selecciona —';
+    if (selectEl.classList.contains('field-error')) display.classList.add('field-error');
+    else display.classList.remove('field-error');
+  }
+
+  function openList() {
+    // Cerrar cualquier otro abierto
+    document.querySelectorAll('.platform-list.open').forEach(l => l.classList.remove('open'));
+    document.querySelectorAll('.platform-display.open').forEach(d => d.classList.remove('open'));
+    refreshList();
+    reposition();
+    list.classList.add('open');
+    display.classList.add('open');
+    const sel = getOption(selectEl.value);
+    if (sel) sel.scrollIntoView({ block: 'nearest' });
+  }
+
+  function closeList() {
+    list.classList.remove('open');
+    display.classList.remove('open');
+  }
+
+  function pickValue(value) {
+    selectEl.value = value;
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    display.textContent = value || '— Selecciona —';
+    if (value) {
+      display.classList.remove('field-error');
+      selectEl.classList.remove('field-error');
+      wrapper.querySelectorAll('.field-hint.error').forEach(h => h.remove());
+    }
+    closeList();
+  }
+
+  /* ── eventos ── */
+  // Usar mousedown para que se resuelva antes del blur/click del documento
+  display.addEventListener('mousedown', e => {
+    e.preventDefault(); // evita que el foco cambie y dispare cierre prematuro
+    list.classList.contains('open') ? closeList() : openList();
+  });
+  display.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); list.classList.contains('open') ? closeList() : openList(); }
+    if (e.key === 'Escape') closeList();
+  });
+  list.addEventListener('mousedown', e => {
+    e.preventDefault(); // evita cierre por blur antes de registrar la selección
+    const opt = e.target.closest('.platform-option');
+    if (opt) pickValue(opt.dataset.value);
+  });
+  // Cerrar al hacer click fuera (mousedown en document, que ocurre antes del click)
+  document.addEventListener('mousedown', e => {
+    if (!wrapper.contains(e.target) && !list.contains(e.target)) closeList();
+  });
+
+  // Sincronizar error state si cambia desde fuera (V.error / V.clear)
+  new MutationObserver(syncDisplay)
+    .observe(selectEl, { attributes: true, attributeFilter: ['class'] });
+
+  syncDisplay();
+}
+
+function populatePlatformSelects() {
+  const platforms = getPlatforms();
+
+  // Filtro de inventario: select nativo (sin custom dropdown, no necesita límite)
+  const filterSel = document.getElementById('filter-platform');
+  if (filterSel) {
+    const current = filterSel.value;
+    filterSel.innerHTML = '<option value="">Todas las plataformas</option>' +
+      platforms.map(p => `<option${p === current ? ' selected' : ''}>${p}</option>`).join('');
+  }
+
+  // Registro rápido, modal artículo y filas de lote — custom dropdown idempotente
+  ['qa-platform', 'item-platform'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) buildPlatformSelect(el);
+  });
+
+  document.querySelectorAll('[data-field="platform"]').forEach(el => {
+    if (el.tagName === 'SELECT') buildPlatformSelect(el);
+  });
+}
+
+// ═══════════════════════════════════════════
 // INICIALIZACIÓN
 // ═══════════════════════════════════════════
 
@@ -28,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('sell-price').addEventListener('input', App.updateSellPreview);
 
+  populatePlatformSelects();
   App.showView('dashboard');
 });
 
@@ -244,7 +407,8 @@ const App = {
     if (platform) params.set('platform', platform);
     if (type)     params.set('type', type);
     if (statusFilter === 'collection') params.set('isCollection', 'true');
-    else if (statusFilter !== '') params.set('isSold', statusFilter);
+    else if (statusFilter === 'false') { params.set('isSold', 'false'); params.set('isCollection', 'false'); }
+    else if (statusFilter === 'true') params.set('isSold', 'true');
 
     try {
       const items = await App.get(`/items?${params}`);
@@ -265,7 +429,7 @@ const App = {
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
       const collectionBadge = item.isCollection
-        ? '<span class="badge badge-collection">⭐</span>&nbsp;'
+        ? '<span class="badge badge-collection">⭐ Colección</span>&nbsp;'
         : '';
       return `<tr class="${item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
@@ -298,33 +462,36 @@ const App = {
     document.getElementById('modal-item-title').textContent = itemId ? 'Editar Artículo' : 'Añadir Artículo';
     V.clearAll(document.getElementById('modal-item'));
 
+
     const lots = await App.get('/lots');
     const lotSel = document.getElementById('item-lot-id');
     lotSel.innerHTML = '<option value="">Sin lote</option>' +
       lots.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
 
+    populatePlatformSelects();
+
     if (itemId) {
       const item = await App.get(`/items/${itemId}`);
-      document.getElementById('item-id').value            = item.id;
-      document.getElementById('item-name').value          = item.name;
-      document.getElementById('item-platform').value      = item.platform || '';
-      document.getElementById('item-type').value          = item.type;
-      document.getElementById('item-condition').value     = item.condition;
+      document.getElementById('item-id').value             = item.id;
+      document.getElementById('item-name').value           = item.name;
+      document.getElementById('item-platform').value       = item.platform || '';
+      document.getElementById('item-type').value           = item.type;
+      document.getElementById('item-condition').value      = item.condition;
       document.getElementById('item-purchase-price').value = item.purchasePrice;
-      document.getElementById('item-shipping').value      = item.shippingCost;
-      document.getElementById('item-purchase-date').value = item.purchaseDate.split('T')[0];
-      document.getElementById('item-lot-id').value        = item.lotId || '';
-      document.getElementById('item-notes').value         = item.notes || '';
+      document.getElementById('item-shipping').value       = item.shippingCost;
+      document.getElementById('item-purchase-date').value  = item.purchaseDate.split('T')[0];
+      document.getElementById('item-lot-id').value         = item.lotId || '';
+      document.getElementById('item-notes').value          = item.notes || '';
       document.getElementById('item-is-collection').checked = item.isCollection || false;
     } else {
-      ['item-id','item-name','item-platform','item-notes'].forEach(id => document.getElementById(id).value = '');
+      ['item-id','item-name','item-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('item-platform').value       = '';
       document.getElementById('item-purchase-price').value = '';
       document.getElementById('item-shipping').value       = '0';
       document.getElementById('item-purchase-date').value  = new Date().toISOString().split('T')[0];
       document.getElementById('item-lot-id').value         = '';
       document.getElementById('item-is-collection').checked = false;
     }
-
     ['item-name','item-purchase-price','item-shipping','item-purchase-date'].forEach(id =>
       V.watch(document.getElementById(id))
     );
@@ -337,16 +504,18 @@ const App = {
     const shipEl  = document.getElementById('item-shipping');
     const dateEl  = document.getElementById('item-purchase-date');
 
+    const platformEl = document.getElementById('item-platform');
     let ok = true;
     ok = V.requireText(nameEl,         'El nombre')             && ok;
+    ok = V.requireText(platformEl,     'La plataforma')         && ok;
     ok = V.requirePositive(priceEl,    'El precio de compra')   && ok;
-    ok = V.requireNonNegative(shipEl,  'El gasto de envío')   && ok;
+    ok = V.requireNonNegative(shipEl,  'Los gastos de envío')   && ok;
     ok = V.requireDate(dateEl,         'La fecha de compra')    && ok;
     if (!ok) return null;
 
     return {
       name:          nameEl.value.trim(),
-      platform:      document.getElementById('item-platform').value.trim(),
+      platform:      platformEl.value.trim(),
       type:          document.getElementById('item-type').value,
       condition:     document.getElementById('item-condition').value,
       purchasePrice: parseFloat(priceEl.value),
@@ -500,6 +669,7 @@ const App = {
   openLotModal() {
     lotItemCount = 0;
     V.clearAll(document.getElementById('modal-lot'));
+
     document.getElementById('lot-name').value     = '';
     document.getElementById('lot-date').value     = new Date().toISOString().split('T')[0];
     document.getElementById('lot-price').value    = '';
@@ -531,8 +701,8 @@ const App = {
           <option value="Accessory">Accesorio</option>
         </select>
       </label>
-      <label style="font-size:0.78rem">Plataforma
-        <input type="text" placeholder="DS" data-field="platform" list="platforms-list" />
+      <label style="font-size:0.78rem">Plataforma *
+        <select data-field="platform"><option value="">— Selecciona —</option></select>
       </label>
       <label style="font-size:0.78rem">Precio €
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price"
@@ -545,6 +715,7 @@ const App = {
               onclick="document.getElementById('lot-item-${idx}').remove();App.recalcLotItems()">✕</button>
     `;
     document.getElementById('lot-items-list').appendChild(row);
+    populatePlatformSelects();
     row.querySelector('[data-field="name"]').addEventListener('input', function() { V.clear(this); });
     row.querySelector('[data-field="price"]').addEventListener('input', function() { V.clear(this); });
     row.querySelector('[data-field="shipping"]').addEventListener('input', function() { V.clear(this); });
@@ -591,7 +762,9 @@ const App = {
       const n = row.querySelector('[data-field="name"]');
       const p = row.querySelector('[data-field="price"]');
       const s = row.querySelector('[data-field="shipping"]');
+      const pl = row.querySelector('[data-field="platform"]');
       if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
+      if (!pl.value.trim()) { V.error(pl, 'Plataforma obligatoria'); ok = false; }
       if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
       if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
     });
@@ -669,6 +842,7 @@ const App = {
 
   openAddToLotModal(lotId, lotName) {
     V.clearAll(document.getElementById('modal-add-to-lot'));
+
     document.getElementById('add-to-lot-id').value = lotId;
     document.getElementById('add-to-lot-subtitle').textContent = `Lote: ${lotName}`;
     document.getElementById('add-to-lot-items-list').innerHTML = '';
@@ -695,8 +869,8 @@ const App = {
           <option value="Accessory">Accesorio</option>
         </select>
       </label>
-      <label style="font-size:0.78rem">Plataforma
-        <input type="text" placeholder="DS" data-field="platform" list="platforms-list" />
+      <label style="font-size:0.78rem">Plataforma *
+        <select data-field="platform"><option value="">— Selecciona —</option></select>
       </label>
       <label style="font-size:0.78rem">Condición
         <select data-field="condition">
@@ -715,6 +889,7 @@ const App = {
               onclick="document.getElementById('atl-item-${idx}').remove()">✕</button>
     `;
     document.getElementById('add-to-lot-items-list').appendChild(row);
+    populatePlatformSelects();
     row.querySelector('[data-field="name"]').addEventListener('input',     function() { V.clear(this); });
     row.querySelector('[data-field="price"]').addEventListener('input',    function() { V.clear(this); });
     row.querySelector('[data-field="shipping"]').addEventListener('input', function() { V.clear(this); });
@@ -730,7 +905,9 @@ const App = {
       const n = row.querySelector('[data-field="name"]');
       const p = row.querySelector('[data-field="price"]');
       const s = row.querySelector('[data-field="shipping"]');
+      const pl = row.querySelector('[data-field="platform"]');
       if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
+      if (!pl.value.trim()) { V.error(pl, 'Plataforma obligatoria'); ok = false; }
       if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
       if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
     });
@@ -769,13 +946,15 @@ const App = {
   // ── Registro Rápido ─────────────────────
 
   _validateQuickForm() {
-    const nameEl  = document.getElementById('qa-name');
-    const priceEl = document.getElementById('qa-price');
-    const shipEl  = document.getElementById('qa-shipping');
-    const dateEl  = document.getElementById('qa-date');
+    const nameEl     = document.getElementById('qa-name');
+    const platformEl = document.getElementById('qa-platform');
+    const priceEl    = document.getElementById('qa-price');
+    const shipEl     = document.getElementById('qa-shipping');
+    const dateEl     = document.getElementById('qa-date');
 
     let ok = true;
     ok = V.requireText(nameEl,         'El nombre')           && ok;
+    ok = V.requireText(platformEl,     'La plataforma')       && ok;
     ok = V.requirePositive(priceEl,    'El precio de compra') && ok;
     ok = V.requireNonNegative(shipEl,  'Los gastos de envío') && ok;
     ok = V.requireDate(dateEl,         'La fecha de compra')  && ok;
@@ -783,7 +962,7 @@ const App = {
 
     return {
       name:          nameEl.value.trim(),
-      platform:      document.getElementById('qa-platform').value.trim(),
+      platform:      platformEl.value.trim(),
       type:          document.getElementById('qa-type').value,
       condition:     document.getElementById('qa-condition').value,
       purchasePrice: parseFloat(priceEl.value),
@@ -832,7 +1011,9 @@ const App = {
   clearQuickForm() {
     V.clearAll(document.getElementById('view-quick-add'));
     document.getElementById('qa-name').value     = '';
-    document.getElementById('qa-platform').value = '';
+    const qaPlatSel = document.getElementById('qa-platform');
+    qaPlatSel.value = '';
+    buildPlatformSelect(qaPlatSel); // refresca el display
     document.getElementById('qa-price').value    = '';
     document.getElementById('qa-shipping').value = '0';
     document.getElementById('qa-notes').value    = '';
@@ -842,7 +1023,7 @@ const App = {
 
   async loadRecentItems() {
     // Registrar watchers en campos del formulario rápido al entrar a la vista
-    ['qa-name','qa-price','qa-shipping','qa-date'].forEach(id => {
+    ['qa-name','qa-platform','qa-price','qa-shipping','qa-date'].forEach(id => {
       const el = document.getElementById(id);
       if (el) V.watch(el);
     });
@@ -867,8 +1048,21 @@ const App = {
     const s = await App.get('/settings');
     document.getElementById('settings-balance').value  = s.initialBalance;
     document.getElementById('settings-currency').value = s.currency;
+    document.getElementById('settings-platforms').value = getPlatforms().join('\n');
     V.watch(document.getElementById('settings-balance'));
     V.watch(document.getElementById('settings-currency'));
+  },
+
+  savePlatforms() {
+    const raw = document.getElementById('settings-platforms').value;
+    const platforms = raw.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+    if (platforms.length === 0) {
+      App.showFeedback('settings-platforms-feedback', 'Añade al menos una plataforma', 'error');
+      return;
+    }
+    localStorage.setItem('rtPlatforms', JSON.stringify(platforms));
+    populatePlatformSelects();
+    App.showFeedback('settings-platforms-feedback', 'Plataformas guardadas ✅', 'success');
   },
 
   async saveSettings() {
