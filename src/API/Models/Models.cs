@@ -44,13 +44,17 @@ public class Item
     public decimal TotalCost => PurchasePrice + ShippingCost;
     public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
 
+    // --- Colección personal ---
+    /// <summary>True si el artículo se conserva en colección personal (no para venta)</summary>
+    public bool IsCollection { get; set; } = false;
+
     // --- Venta ---
     public bool IsSold { get; set; } = false;
     public decimal? SalePrice { get; set; }
     public DateTime? SaleDate { get; set; }
 
     // --- Beneficio calculado ---
-    /// <summary>Beneficio = Precio Venta - Coste Total (null si no vendido)</summary>
+    /// <summary>Beneficio = Precio Venta - Coste Total (null si no vendido ni colección)</summary>
     public decimal? Profit => IsSold && SalePrice.HasValue
         ? SalePrice.Value - TotalCost
         : null;

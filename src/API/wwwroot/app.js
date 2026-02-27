@@ -74,17 +74,15 @@ const App = {
       document.getElementById('stat-profit').textContent = fmt(data.totalProfit);
       document.getElementById('stat-balance').textContent = fmt(data.currentBalance);
       document.getElementById('stat-stock-value').textContent = fmt(data.stockValue);
-      document.getElementById('stat-items').textContent =
-        `${data.soldItems}/${data.totalItems}`;
+      document.getElementById('stat-stock-count').textContent = `${data.stockItems} artículo${data.stockItems !== 1 ? 's' : ''}`;
+      document.getElementById('stat-collection-value').textContent = fmt(data.collectionValue);
+      document.getElementById('stat-collection-count').textContent = `${data.collectionItems} artículo${data.collectionItems !== 1 ? 's' : ''}`;
 
-      // Badge balance
-      const badge = document.getElementById('dash-balance-badge');
-      badge.textContent = data.isPositive ? '✅ En positivo' : '🔴 En negativo';
-      badge.className = `subtitle ${data.isPositive ? 'positive' : 'negative'}`;
-
-      // Profit card color
+      // Colores dinámicos en Beneficio y Balance según positivo/negativo
       const profitCard = document.querySelector('.stat-card.profit .stat-value');
-      profitCard.className = `stat-value ${data.totalProfit >= 0 ? 'positive' : 'negative'}`;
+      profitCard.style.color = data.totalProfit >= 0 ? 'var(--green)' : 'var(--red)';
+      const balanceCard = document.querySelector('.stat-card.balance .stat-value');
+      balanceCard.style.color = data.currentBalance >= 0 ? 'var(--accent)' : 'var(--red)';
 
       App.renderMonthlyChart(data.monthlyStats);
       App.renderPlatformChart(data.platformStats);
@@ -133,7 +131,51 @@ const App = {
     const ctx = document.getElementById('chartPlatform').getContext('2d');
     if (chartPlatform) chartPlatform.destroy();
 
-    const colors = ['#00ff88','#ff6b35','#ffd60a','#00b4d8','#9d4edd','#f72585'];
+    // Colores únicos por plataforma — familias con tonos distintos (Opción A)
+    const platformColors = {
+      // Nintendo handheld
+      'GB':      '#5a8a00',  // Verde Game Boy original
+      'GBC':     '#7ab800',  // Verde claro Game Boy Color
+      'GBA':     '#9fd600',  // Verde lima GBA
+      'DS':      '#c8f000',  // Verde amarillento DS
+      '3DS':     '#f0e000',  // Amarillo 3DS
+      // Nintendo consola
+      'NES':     '#e84000',  // Rojo ladrillo NES
+      'SNES':    '#cc2200',  // Rojo oscuro SNES
+      'N64':     '#a80000',  // Rojo muy oscuro N64
+      'GCN':     '#6a0dad',  // Morado GameCube
+      'Wii':     '#009ac7',  // Cyan Wii
+      'WiiU':    '#005f7a',  // Cyan oscuro Wii U
+      'Switch':  '#e4000f',  // Rojo vivo Switch
+      // PlayStation
+      'PS1':     '#003087',  // Azul muy oscuro
+      'PS2':     '#0050b3',  // Azul medio
+      'PS3':     '#0077cc',  // Azul claro
+      'PS4':     '#0099ee',  // Azul brillante
+      'PS5':     '#00bbff',  // Azul cielo
+      'PSP':     '#00aaff',  // Azul PSP
+      'PSV':     '#4400cc',  // Violeta PS Vita
+      // Xbox
+      'Xbox':    '#107c10',  // Verde oscuro Xbox
+      'X360':    '#52b043',  // Verde medio 360
+      'XOne':    '#2d7a2d',  // Verde XOne
+      // Sega
+      'Genesis': '#1a1aff',  // Azul Sega
+      'Saturn':  '#5555ff',  // Azul medio Saturn
+      'DC':      '#ff8800',  // Naranja Dreamcast
+      'GG':      '#ff5500',  // Naranja Game Gear
+      // Otro
+      'PC':      '#888888',  // Gris PC
+      'Otro':    '#444444',  // Gris oscuro
+    };
+
+    // Fallback para plataformas no definidas — colores que no se solapan con los de arriba
+    const fallback = ['#ff00aa','#00ffcc','#ff99ff','#ffcc00','#cc00ff','#00ff66'];
+    let fallbackIdx = 0;
+
+    const colors = stats.map(s =>
+      platformColors[s.platform] || fallback[fallbackIdx++ % fallback.length]
+    );
 
     chartPlatform = new Chart(ctx, {
       type: 'doughnut',
@@ -141,7 +183,7 @@ const App = {
         labels: stats.map(s => s.platform),
         datasets: [{
           data: stats.map(s => s.totalItems),
-          backgroundColor: colors.slice(0, stats.length),
+          backgroundColor: colors,
           borderWidth: 0
         }]
       },
@@ -180,13 +222,14 @@ const App = {
     const search = document.getElementById('search-input')?.value || '';
     const platform = document.getElementById('filter-platform')?.value || '';
     const type = document.getElementById('filter-type')?.value || '';
-    const isSold = document.getElementById('filter-status')?.value || '';
+    const statusFilter = document.getElementById('filter-status')?.value || '';
 
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (platform) params.set('platform', platform);
     if (type) params.set('type', type);
-    if (isSold !== '') params.set('isSold', isSold);
+    if (statusFilter === 'collection') params.set('isCollection', 'true');
+    else if (statusFilter !== '') params.set('isSold', statusFilter);
 
     try {
       const items = await App.get(`/items?${params}`);
@@ -206,9 +249,12 @@ const App = {
       const profit = item.profit !== null
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
         : '<span class="neutral">—</span>';
+      const collectionBadge = item.isCollection
+        ? '<span class="badge badge-collection">⭐ Colección</span> '
+        : '';
 
-      return `<tr>
-        <td><strong>${escapeHtml(item.name)}</strong></td>
+      return `<tr class="${item.isCollection ? 'row-collection' : ''}">
+        <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td>${typeBadge(item.type)}</td>
         <td><span class="badge">${item.platform || '—'}</span></td>
         <td>${condBadge(item.condition)}</td>
@@ -219,10 +265,13 @@ const App = {
         <td class="neutral" style="font-size:0.78rem">${fmtDate(item.purchaseDate)}</td>
         <td>
           <div style="display:flex;gap:4px">
-            ${!item.isSold
+            ${!item.isSold && !item.isCollection
               ? `<button class="btn-icon" title="Vender" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
-              : `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>`
+              : item.isSold
+                ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>`
+                : ''
             }
+            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id}, ${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
             <button class="btn-icon" title="Editar" onclick="App.openItemModal(${item.id})">✏️</button>
             <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>
@@ -256,6 +305,7 @@ const App = {
       document.getElementById('item-purchase-date').value = item.purchaseDate.split('T')[0];
       document.getElementById('item-lot-id').value = item.lotId || '';
       document.getElementById('item-notes').value = item.notes || '';
+      document.getElementById('item-is-collection').checked = item.isCollection || false;
     } else {
       document.getElementById('item-id').value = '';
       document.getElementById('item-name').value = '';
@@ -281,7 +331,8 @@ const App = {
       shippingCost: parseFloat(document.getElementById('item-shipping').value) || 0,
       purchaseDate: document.getElementById('item-purchase-date').value,
       lotId: document.getElementById('item-lot-id').value || null,
-      notes: document.getElementById('item-notes').value
+      notes: document.getElementById('item-notes').value,
+      isCollection: document.getElementById('item-is-collection').checked
     };
 
     if (!body.name) { App.toast('El nombre es obligatorio', 'error'); return; }
@@ -349,6 +400,17 @@ const App = {
       App.loadInventory();
     } catch (e) {
       App.toast('Error deshaciendo venta', 'error');
+    }
+  },
+
+
+  async toggleCollection(id, currentValue) {
+    try {
+      await App.put(`/items/${id}`, { isCollection: !currentValue });
+      App.toast(!currentValue ? '⭐ Movido a colección' : '📦 Movido a stock');
+      App.loadInventory();
+    } catch (e) {
+      App.toast('Error actualizando artículo', 'error');
     }
   },
 
@@ -696,7 +758,8 @@ const App = {
       purchasePrice: price,
       shippingCost: parseFloat(document.getElementById('qa-shipping').value) || 0,
       purchaseDate: document.getElementById('qa-date').value,
-      notes: document.getElementById('qa-notes').value
+      notes: document.getElementById('qa-notes').value,
+      isCollection: document.getElementById('qa-collection')?.checked || false
     };
   },
 
@@ -706,6 +769,7 @@ const App = {
     document.getElementById('qa-price').value = '';
     document.getElementById('qa-shipping').value = '0';
     document.getElementById('qa-notes').value = '';
+    document.getElementById('qa-collection').checked = false;
     document.getElementById('qa-feedback').innerHTML = '';
   },
 

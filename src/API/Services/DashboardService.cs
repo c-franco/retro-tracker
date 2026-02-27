@@ -15,14 +15,17 @@ public class DashboardService
         var settings = await _db.AppSettings.FirstAsync();
         var items = await _db.Items.Include(i => i.Lot).ToListAsync();
 
-        var sold = items.Where(i => i.IsSold).ToList();
-        var stock = items.Where(i => !i.IsSold).ToList();
+        var sold       = items.Where(i => i.IsSold).ToList();
+        var collection = items.Where(i => !i.IsSold && i.IsCollection).ToList();
+        var stock      = items.Where(i => !i.IsSold && !i.IsCollection).ToList();
 
-        decimal totalInvested = items.Sum(i => i.TotalCost);
-        decimal totalRevenue = sold.Sum(i => i.SalePrice ?? 0);
-        decimal totalProfit = totalRevenue - totalInvested;
+        // Colección personal NO cuenta para el cálculo de beneficio/inversión de venta
+        decimal totalInvested  = items.Where(i => !i.IsCollection).Sum(i => i.TotalCost);
+        decimal totalRevenue   = sold.Sum(i => i.SalePrice ?? 0);
+        decimal totalProfit    = totalRevenue - totalInvested;
         decimal currentBalance = settings.InitialBalance + totalProfit;
-        decimal stockValue = stock.Sum(i => i.TotalCost);
+        decimal stockValue     = stock.Sum(i => i.TotalCost);
+        decimal collectionValue = collection.Sum(i => i.TotalCost);
 
         // Estadísticas mensuales (últimos 12 meses)
         var monthlyStats = items
@@ -53,7 +56,7 @@ public class DashboardService
             .OrderByDescending(p => p.TotalItems)
             .ToList();
 
-        // Artículos pendientes de vender
+        // Artículos pendientes de vender (excluye colección personal)
         var pendingItems = stock
             .OrderBy(i => i.PurchaseDate)
             .Select(ItemService.ToDto)
@@ -67,9 +70,11 @@ public class DashboardService
             Math.Round(currentBalance, 2),
             currentBalance >= 0,
             Math.Round(stockValue, 2),
+            Math.Round(collectionValue, 2),
             items.Count,
             sold.Count,
             stock.Count,
+            collection.Count,
             monthlyStats,
             pendingItems,
             platformStats

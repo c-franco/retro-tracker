@@ -19,9 +19,10 @@ public class ItemsController : ControllerBase
         [FromQuery] string? type,
         [FromQuery] string? condition,
         [FromQuery] bool? isSold,
+        [FromQuery] bool? isCollection,
         [FromQuery] string? search)
     {
-        var items = await _service.GetAllAsync(platform, type, condition, isSold, search);
+        var items = await _service.GetAllAsync(platform, type, condition, isSold, isCollection, search);
         return Ok(items);
     }
 

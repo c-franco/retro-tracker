@@ -18,7 +18,8 @@ public record ItemDto(
     decimal? SalePrice,
     DateTime? SaleDate,
     decimal? Profit,
-    string? Notes
+    string? Notes,
+    bool IsCollection
 );
 
 public record CreateItemRequest(
@@ -30,7 +31,8 @@ public record CreateItemRequest(
     decimal PurchasePrice,
     decimal ShippingCost,
     DateTime? PurchaseDate,
-    string? Notes
+    string? Notes,
+    bool IsCollection = false
 );
 
 public record UpdateItemRequest(
@@ -41,7 +43,8 @@ public record UpdateItemRequest(
     decimal? PurchasePrice,
     decimal? ShippingCost,
     DateTime? PurchaseDate,
-    string? Notes
+    string? Notes,
+    bool? IsCollection
 );
 
 public record SellItemRequest(
@@ -106,10 +109,12 @@ public record DashboardDto(
     decimal TotalProfit,         // Revenue - Invested
     decimal CurrentBalance,      // InitialBalance + Profit
     bool IsPositive,
-    decimal StockValue,          // Valor en stock (precio compra de artículos no vendidos)
+    decimal StockValue,          // Valor artículos en stock para venta
+    decimal CollectionValue,     // Valor artículos en colección personal
     int TotalItems,
     int SoldItems,
     int StockItems,
+    int CollectionItems,
     List<MonthlyStatsDto> MonthlyStats,
     List<ItemDto> PendingItems,
     List<PlatformStatsDto> PlatformStats

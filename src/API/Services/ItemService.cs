@@ -28,7 +28,8 @@ public class ItemService
         item.SalePrice,
         item.SaleDate,
         item.Profit,
-        item.Notes
+        item.Notes,
+        item.IsCollection
     );
 
     // ─── Consultas ───
@@ -38,6 +39,7 @@ public class ItemService
         string? type = null,
         string? condition = null,
         bool? isSold = null,
+        bool? isCollection = null,
         string? search = null)
     {
         var query = _db.Items.Include(i => i.Lot).AsQueryable();
@@ -54,6 +56,9 @@ public class ItemService
 
         if (isSold.HasValue)
             query = query.Where(i => i.IsSold == isSold.Value);
+
+        if (isCollection.HasValue)
+            query = query.Where(i => i.IsCollection == isCollection.Value);
 
         if (!string.IsNullOrEmpty(search))
             query = query.Where(i => i.Name.ToLower().Contains(search.ToLower()));
@@ -82,7 +87,8 @@ public class ItemService
             PurchasePrice = req.PurchasePrice,
             ShippingCost = req.ShippingCost,
             PurchaseDate = req.PurchaseDate ?? DateTime.UtcNow,
-            Notes = req.Notes
+            Notes = req.Notes,
+            IsCollection = req.IsCollection
         };
         _db.Items.Add(item);
         await _db.SaveChangesAsync();
@@ -105,6 +111,7 @@ public class ItemService
         if (req.ShippingCost.HasValue) item.ShippingCost = req.ShippingCost.Value;
         if (req.PurchaseDate.HasValue) item.PurchaseDate = req.PurchaseDate.Value;
         if (req.Notes != null) item.Notes = req.Notes;
+        if (req.IsCollection.HasValue) item.IsCollection = req.IsCollection.Value;
 
         await _db.SaveChangesAsync();
         return ToDto(item);
