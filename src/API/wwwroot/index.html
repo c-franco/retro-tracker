@@ -246,16 +246,14 @@
         <label>Moneda
           <input type="text" id="settings-currency" value="EUR" maxlength="3" />
         </label>
-        <button class="btn-primary" onclick="App.saveSettings()">Guardar</button>
-        <div id="settings-feedback" class="feedback-msg"></div>
       </div>
       <div class="settings-card" style="margin-top:1.5rem">
         <h3>Plataformas</h3>
         <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Una plataforma por línea. Se usan en todos los desplegables de la aplicación.</p>
         <textarea id="settings-platforms" rows="10" style="font-family:var(--font-mono);font-size:0.82rem;resize:vertical"></textarea>
-        <button class="btn-primary" onclick="App.savePlatforms()">Guardar plataformas</button>
-        <div id="settings-platforms-feedback" class="feedback-msg"></div>
       </div>
+      <div id="settings-feedback" class="feedback-msg" style="margin-top:0.5rem"></div>
+      <button class="btn-primary btn-lg" style="margin-top:1rem" onclick="App.saveAllSettings()">Guardar ajustes</button>
     </section>
 
   </main>

@@ -709,12 +709,13 @@ select.field-error option {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.8rem;
-  max-width: 400px;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-.settings-card h3 { font-family: var(--font-mono); margin-bottom: 0.5rem; }
+.settings-card > *:last-child { margin-bottom: 0; }
+.settings-card h3 { font-family: var(--font-mono); margin-bottom: 0; }
 
 /* ── PROFIT COLORS ── */
 .positive { color: var(--green); }

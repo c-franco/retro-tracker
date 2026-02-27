@@ -952,24 +952,16 @@ const App = {
     V.watch(document.getElementById('settings-currency'));
   },
 
-  savePlatforms() {
+  async saveAllSettings() {
+    // ── Validar plataformas ──
     const raw = document.getElementById('settings-platforms').value;
     const platforms = raw.split('\n').map(p => p.trim()).filter(p => p.length > 0);
     if (platforms.length === 0) {
-      App.showFeedback('settings-platforms-feedback', 'Añade al menos una plataforma', 'error');
+      App.showFeedback('settings-feedback', '⚠️ Añade al menos una plataforma', 'error');
       return;
     }
-    localStorage.setItem('rtPlatforms', JSON.stringify(platforms));
-    // Resetear selects para que tomen el nuevo primer valor
-    ['qa-platform','item-platform'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    populatePlatformSelects();
-    App.showFeedback('settings-platforms-feedback', 'Plataformas guardadas ✅', 'success');
-  },
 
-  async saveSettings() {
+    // ── Validar configuración financiera ──
     const balanceEl  = document.getElementById('settings-balance');
     const currencyEl = document.getElementById('settings-currency');
     let ok = true;
@@ -978,13 +970,23 @@ const App = {
     if (!ok) return;
 
     try {
+      // Guardar ajustes financieros en el servidor
       await App.put('/settings', {
         initialBalance: parseFloat(balanceEl.value) || 0,
         currency:       currencyEl.value.trim().toUpperCase()
       });
+
+      // Guardar plataformas en localStorage
+      localStorage.setItem('rtPlatforms', JSON.stringify(platforms));
+      ['qa-platform', 'item-platform'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      populatePlatformSelects();
+
       App.showFeedback('settings-feedback', 'Ajustes guardados ✅', 'success');
     } catch (e) {
-      App.showFeedback('settings-feedback', 'Error guardando', 'error');
+      App.showFeedback('settings-feedback', 'Error guardando ajustes', 'error');
     }
   },
 
