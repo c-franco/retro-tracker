@@ -10,6 +10,7 @@ let currentItemId = null;
 let currentSellCost = 0;
 let lotItemCount = 0;
 let recentItems = [];
+let _currency = 'EUR'; // Moneda activa — se actualiza al cargar/guardar ajustes
 
 // ═══════════════════════════════════════════
 // PLATAFORMAS
@@ -77,7 +78,7 @@ function populatePlatformSelects() {
 // INICIALIZACIÓN
 // ═══════════════════════════════════════════
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
@@ -89,6 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[type="date"]').forEach(el => el.value = today);
 
   document.getElementById('sell-price').addEventListener('input', App.updateSellPreview);
+
+  // Cargar moneda antes del primer render para que fmt() la use desde el inicio
+  try {
+    const s = await App.get('/settings');
+    _currency = s.currency || 'EUR';
+  } catch { /* usar EUR por defecto */ }
 
   populatePlatformSelects();
   App.showView('dashboard');
@@ -970,6 +977,7 @@ const App = {
     document.getElementById('settings-balance').value  = s.initialBalance;
     document.getElementById('settings-currency').value = s.currency;
     document.getElementById('settings-platforms').value = getPlatforms().join('\n');
+    _currency = s.currency || 'EUR';
     V.watch(document.getElementById('settings-balance'));
     V.watch(document.getElementById('settings-currency'));
   },
@@ -997,6 +1005,9 @@ const App = {
         initialBalance: parseFloat(balanceEl.value) || 0,
         currency:       currencyEl.value.trim().toUpperCase()
       });
+
+      // Actualizar moneda activa globalmente
+      _currency = currencyEl.value.trim().toUpperCase();
 
       // Guardar plataformas en localStorage
       localStorage.setItem('rtPlatforms', JSON.stringify(platforms));
@@ -1129,7 +1140,7 @@ App.confirmDialog = {
 
 function fmt(n) {
   if (n === null || n === undefined) return '—';
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: _currency }).format(n);
 }
 
 function fmtDate(d) {
