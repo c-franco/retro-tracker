@@ -723,6 +723,37 @@ select.field-error option {
 .neutral  { color: var(--text2); }
 .row-collection { background: rgba(255,214,10,0.04) !important; }
 
+/* ── CONFIRM MODAL ── */
+.confirm-modal {
+  max-width: 360px;
+  text-align: center;
+}
+
+.confirm-icon {
+  font-size: 2.5rem;
+  padding: 1.5rem 1.5rem 0.5rem;
+  line-height: 1;
+}
+
+.confirm-modal .modal-footer {
+  border-top: none;
+  padding-top: 0.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.btn-danger {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.55rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-danger:hover { opacity: 0.85; }
+
 /* ── TOAST ── */
 .toast {
   position: fixed;

@@ -19,8 +19,9 @@ public class DashboardService
         var collection = items.Where(i => !i.IsSold && i.IsCollection).ToList();
         var stock      = items.Where(i => !i.IsSold && !i.IsCollection).ToList();
 
-        // Colección personal NO cuenta para el cálculo de beneficio/inversión de venta
-        decimal totalInvested  = items.Where(i => !i.IsCollection).Sum(i => i.TotalCost);
+        // Invertido = TODO lo que has gastado, incluida la colección personal
+        // (la colección no genera retorno pero sí supuso un gasto real)
+        decimal totalInvested  = items.Sum(i => i.TotalCost);
         decimal totalRevenue   = sold.Sum(i => i.SalePrice ?? 0);
         decimal totalProfit    = totalRevenue - totalInvested;
         decimal currentBalance = settings.InitialBalance + totalProfit;

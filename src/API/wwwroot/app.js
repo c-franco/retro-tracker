@@ -480,13 +480,21 @@ const App = {
       App.closeModal('modal-sell');
       App.loadInventory();
       App.loadDashboard();
+      App.loadLots();
     } catch (e) {
       App.toast('Error registrando venta', 'error');
     }
   },
 
   async unsell(id) {
-    if (!confirm('¿Deshacer la venta de este artículo?')) return;
+    const ok = await App.confirmDialog.show({
+      message: '¿Deshacer la venta de este artículo?',
+      submessage: 'El artículo volverá a estar en stock.',
+      icon: '↩️',
+      okLabel: 'Deshacer venta',
+      okClass: 'btn-secondary'
+    });
+    if (!ok) return;
     try {
       await App.post(`/items/${id}/unsell`, {});
       App.toast('Venta deshecha ↩️');
@@ -507,7 +515,14 @@ const App = {
   },
 
   async deleteItem(id) {
-    if (!confirm('¿Eliminar este artículo? Esta acción no se puede deshacer.')) return;
+    const ok = await App.confirmDialog.show({
+      message: '¿Eliminar este artículo?',
+      submessage: 'Esta acción no se puede deshacer.',
+      icon: '🗑️',
+      okLabel: 'Eliminar',
+      okClass: 'btn-danger'
+    });
+    if (!ok) return;
     try {
       await App.delete(`/items/${id}`);
       App.toast('Artículo eliminado 🗑️');
@@ -833,7 +848,14 @@ const App = {
   },
 
   async deleteLot(id) {
-    if (!confirm('¿Eliminar el lote y todos sus artículos no vendidos?')) return;
+    const ok = await App.confirmDialog.show({
+      message: '¿Eliminar el lote y todos sus artículos?',
+      submessage: 'Esta acción no se puede deshacer.',
+      icon: '🎁',
+      okLabel: 'Eliminar lote',
+      okClass: 'btn-danger'
+    });
+    if (!ok) return;
     try {
       await App.delete(`/lots/${id}`);
       App.toast('Lote eliminado');
@@ -1073,8 +1095,37 @@ const App = {
 };
 
 // ═══════════════════════════════════════════
-// UTILIDADES
+// MODAL DE CONFIRMACIÓN PERSONALIZADO
 // ═══════════════════════════════════════════
+
+App.confirmDialog = {
+  _resolve: null,
+
+  show({ message, submessage = '', icon = '🗑️', okLabel = 'Eliminar', okClass = 'btn-danger' }) {
+    return new Promise(resolve => {
+      this._resolve = resolve;
+      document.getElementById('confirm-message').textContent = message;
+      document.getElementById('confirm-submessage').textContent = submessage;
+      document.getElementById('confirm-icon').textContent = icon;
+      const okBtn = document.getElementById('confirm-ok-btn');
+      okBtn.textContent = okLabel;
+      okBtn.className = okClass;
+      document.getElementById('modal-confirm').classList.add('open');
+    });
+  },
+
+  accept() {
+    document.getElementById('modal-confirm').classList.remove('open');
+    if (this._resolve) { this._resolve(true); this._resolve = null; }
+  },
+
+  cancel() {
+    document.getElementById('modal-confirm').classList.remove('open');
+    if (this._resolve) { this._resolve(false); this._resolve = null; }
+  }
+};
+
+
 
 function fmt(n) {
   if (n === null || n === undefined) return '—';
