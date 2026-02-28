@@ -452,6 +452,25 @@
     </div>
   </div>
 
+  <!-- ──── MODAL: ERRORES DE IMPORTACIÓN ──── -->
+  <div class="modal-overlay" id="modal-import-errors" onclick="App.closeModal('modal-import-errors')">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2>⚠️ Importación cancelada</h2>
+          <p style="font-size:0.8rem;color:var(--text2);margin-top:3px">Corrige los errores en el archivo Excel y vuelve a importar.</p>
+        </div>
+        <button class="modal-close" onclick="App.closeModal('modal-import-errors')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div id="import-errors-list" class="import-errors-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="App.closeModal('modal-import-errors')">Entendido</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ──── MODAL: CONFIRMACIÓN ──── -->
   <div class="modal-overlay" id="modal-confirm">
     <div class="modal modal-sm confirm-modal" onclick="event.stopPropagation()">

@@ -229,7 +229,7 @@ const App = {
     if (view === 'inventory') App.loadInventory();
     if (view === 'lots')      App.loadLots();
     if (view === 'settings')  { App.loadSettings(); loadColToggles(); }
-    if (view === 'quick-add') App.loadRecentItems();
+    if (view === 'quick-add') { V.clearAll(document.getElementById('view-quick-add')); App.loadRecentItems(); }
   },
 
   toggleSidebar() {
@@ -1060,7 +1060,7 @@ const App = {
       saveVisibleCols(visibleCols);
       applyVisibleCols();
 
-      App.showFeedback('settings-feedback', 'Ajustes guardados ✅', 'success');
+      App.toast('Ajustes guardados ✅');
     } catch (e) {
       App.showFeedback('settings-feedback', 'Error guardando ajustes', 'error');
     }
@@ -1088,10 +1088,25 @@ const App = {
         App.loadInventory();
         App.loadDashboard();
       } else {
-        const lines = (data.errors || [])
-          .map(e => `Fila ${e.fila} · ${e.columna}: "${e.valor}" — ${e.motivo}`)
-          .join('\n');
-        alert('Importación cancelada.\n\n' + (lines || data.error));
+        const errors = data.errors || [];
+        const list = document.getElementById('import-errors-list');
+
+        const summary = `<div class="import-errors-summary">
+          ⛔ ${errors.length} error${errors.length !== 1 ? 'es' : ''} encontrado${errors.length !== 1 ? 's' : ''}
+        </div>`;
+
+        const rows = errors.length
+          ? errors.map(e => `
+              <div class="import-error-row">
+                <span class="err-fila">Fila ${e.fila}</span>
+                <span class="err-col">${e.columna}</span>
+                <span class="err-msg">${escapeHtml(e.motivo)}</span>
+                ${e.valor ? `<span class="err-val">Valor recibido: "${escapeHtml(e.valor)}"</span>` : ''}
+              </div>`).join('')
+          : `<div class="import-error-row"><span class="err-msg" style="grid-column:1/-1">${escapeHtml(data.error || 'Error desconocido')}</span></div>`;
+
+        list.innerHTML = summary + rows;
+        App.openModal('modal-import-errors');
       }
     } catch (e) {
       App.toast('Error de conexión al importar', 'error');
