@@ -22,7 +22,7 @@ public class ImportService
     public async Task<ImportResult> ImportItemsFromExcelAsync(Stream fileStream)
     {
         var errors = new List<ImportError>();
-        var itemsToInsert = new List<(Item Item, string LotName, string? LotNotes)>();
+        var itemsToInsert = new List<(Item Item, string LotName, string? LotNotes, List<string> Tags)>();
 
         using var wb = new XLWorkbook(fileStream);
 
@@ -168,6 +168,16 @@ public class ImportService
 
             if (errors.Any(e => e.Row == rowNum)) continue;
 
+            // ── Col 19: Etiquetas (opcional, separadas por coma) ──
+            var tagsRaw = Get(19);
+            var tagNames = string.IsNullOrWhiteSpace(tagsRaw)
+                ? new List<string>()
+                : tagsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(t => t.Trim().ToLower())
+                         .Where(t => t.Length > 0)
+                         .Distinct()
+                         .ToList();
+
             // ── Col 8: Notas Lote (se usa al crear/actualizar el lote) ──
             var lotNotes = Get(8).NullIfEmpty();
 
@@ -185,7 +195,7 @@ public class ImportService
                 SaleDate      = saleDate,
                 IsCollection  = isCollection,
                 Notes         = Get(18).NullIfEmpty()
-            }, Get(7), lotNotes));
+            }, Get(7), lotNotes, tagNames));
         }
 
         if (errors.Any())
@@ -199,18 +209,15 @@ public class ImportService
 
         // ── Crear lotes que no existan y asignar LotId ──
         var existingLots = await _db.Lots.ToListAsync();
-        // Mapa nombre → Lot (incluye los que crearemos ahora)
         var lotMap = existingLots.ToDictionary(l => l.Name, l => l, StringComparer.OrdinalIgnoreCase);
 
-        // Detectar nombres de lote nuevos (excluir "Sin lote" y vacíos)
         var newLotNames = itemsToInsert
             .Select(t => t.LotName)
             .Where(n => !string.IsNullOrWhiteSpace(n) && n != "Sin lote" && !lotMap.ContainsKey(n))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Actualizar notas de lotes ya existentes si estaban vacías
-        foreach (var (_, lotName, lotNotes) in itemsToInsert)
+        foreach (var (_, lotName, lotNotes, _) in itemsToInsert)
         {
             if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
                 && lotNotes != null && lotMap.TryGetValue(lotName, out var existingLot)
@@ -220,7 +227,6 @@ public class ImportService
 
         foreach (var lotName in newLotNames)
         {
-            // Inferir fecha y notas del lote a partir del primer ítem que lo menciona
             var firstEntry = itemsToInsert.First(t => t.LotName.Equals(lotName, StringComparison.OrdinalIgnoreCase));
             var newLot = new Lot
             {
@@ -231,12 +237,11 @@ public class ImportService
                 TotalShippingCost  = 0
             };
             _db.Lots.Add(newLot);
-            await _db.SaveChangesAsync(); // necesitamos el Id generado
+            await _db.SaveChangesAsync();
             lotMap[lotName] = newLot;
         }
 
-        // Asignar LotId a cada ítem
-        foreach (var (item, lotName, _) in itemsToInsert)
+        foreach (var (item, lotName, _, _) in itemsToInsert)
         {
             if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
                 && lotMap.TryGetValue(lotName, out var lot))
@@ -244,7 +249,37 @@ public class ImportService
         }
 
         _db.Items.AddRange(itemsToInsert.Select(t => t.Item));
-        await _db.SaveChangesAsync(); // guarda ítems y notas de lotes actualizadas
+        await _db.SaveChangesAsync();
+
+        // ── Asignar etiquetas sin duplicados ──
+        // Cargar todos los tags existentes en memoria una sola vez
+        var existingTags = await _db.Tags.ToListAsync();
+        var tagMap = existingTags.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (item, _, _, tagNames) in itemsToInsert)
+        {
+            if (tagNames.Count == 0) continue;
+
+            foreach (var tagName in tagNames)
+            {
+                // Buscar o crear el tag (sin duplicados)
+                if (!tagMap.TryGetValue(tagName, out var tag))
+                {
+                    tag = new Tag { Name = tagName };
+                    _db.Tags.Add(tag);
+                    await _db.SaveChangesAsync(); // necesitamos el Id
+                    tagMap[tagName] = tag;
+                }
+
+                // Vincular solo si no existe ya la relación
+                bool alreadyLinked = await _db.ItemTags
+                    .AnyAsync(it => it.ItemId == item.Id && it.TagId == tag.Id);
+                if (!alreadyLinked)
+                    _db.ItemTags.Add(new ItemTag { ItemId = item.Id, TagId = tag.Id });
+            }
+        }
+
+        await _db.SaveChangesAsync();
 
         return new ImportResult(true, itemsToInsert.Count, new List<ImportError>());
     }

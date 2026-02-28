@@ -723,6 +723,111 @@ select.field-error option {
 .neutral  { color: var(--text2); }
 .row-collection { background: rgba(255,214,10,0.04) !important; }
 
+/* ── TAGS ── */
+
+/* Colores de pills por índice (se asignan cíclicamente por hash del nombre) */
+.tag { display:inline-flex; align-items:center; gap:0.25rem; padding:0.1rem 0.5rem; border-radius:20px; font-size:0.7rem; font-weight:600; white-space:nowrap; letter-spacing:0.2px; }
+.tag::before { content:'#'; opacity:0.45; font-size:0.65rem; }
+.tag-c0 { background:rgba(0,255,136,0.12);  color:#00ff88; border:1px solid rgba(0,255,136,0.25); }
+.tag-c1 { background:rgba(255,107,53,0.12); color:#ff8c5a; border:1px solid rgba(255,107,53,0.25); }
+.tag-c2 { background:rgba(255,214,10,0.12); color:#ffd60a; border:1px solid rgba(255,214,10,0.25); }
+.tag-c3 { background:rgba(138,99,255,0.12); color:#a87fff; border:1px solid rgba(138,99,255,0.25); }
+.tag-c4 { background:rgba(0,180,255,0.12);  color:#00b4ff; border:1px solid rgba(0,180,255,0.25); }
+.tag-c5 { background:rgba(255,70,130,0.12); color:#ff6699; border:1px solid rgba(255,70,130,0.25); }
+
+.tags-cell { display:flex; flex-wrap:wrap; gap:0.3rem; min-width:100px; }
+
+/* Pill input (formularios) */
+.pill-input-wrap {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  min-height: 2.4rem;
+  cursor: text;
+  transition: border-color 0.15s;
+}
+.pill-input-wrap:focus-within { border-color: var(--accent); }
+
+.pill-input-wrap .tag { cursor:default; }
+.pill-input-wrap .tag .tag-remove {
+  opacity:0.45; cursor:pointer; margin-left:1px; font-style:normal;
+  transition:opacity 0.1s;
+}
+.pill-input-wrap .tag:hover .tag-remove { opacity:1; }
+
+.pill-input-wrap input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-size: 0.85rem;
+  font-family: var(--font-body); min-width: 120px; flex: 1; padding: 0.1rem 0;
+}
+
+/* Sugerencias de autocomplete */
+.tag-suggestions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 3px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  display: none;
+}
+.tag-suggestions.open { display: block; }
+.tag-suggestion-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.4rem 0.7rem; font-size: 0.83rem; color: var(--text2);
+  cursor: pointer; transition: background 0.1s; gap: 0.5rem;
+}
+.tag-suggestion-item:hover { background: var(--surface2); color: var(--text); }
+.tag-suggestion-count { font-size:0.72rem; color:var(--text3); }
+
+/* Filtro por etiquetas en barra de filtros */
+.tag-filter-wrap { position: relative; }
+.tag-filter-btn {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text2); border-radius: var(--radius);
+  padding: 0.5rem 0.8rem; font-size: 0.85rem;
+  font-family: var(--font-body); cursor: pointer; transition: border-color 0.15s;
+  white-space: nowrap;
+}
+.tag-filter-btn.has-active { border-color: var(--accent3); color: var(--accent3); }
+.tag-filter-btn:hover { border-color: var(--text2); color: var(--text); }
+
+.tag-filter-dropdown {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.4rem;
+  z-index: 200; min-width: 210px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-height: 280px; overflow-y: auto;
+}
+.tag-filter-dropdown.open { display: flex; flex-direction: column; gap: 0.15rem; }
+.tag-filter-option {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.5rem; border-radius: 6px;
+  cursor: pointer; font-size: 0.83rem; color: var(--text2);
+  transition: background 0.1s; user-select:none;
+}
+.tag-filter-option:hover { background: var(--surface2); }
+.tag-filter-option input { width:auto; accent-color:var(--accent); cursor:pointer; }
+.tag-filter-empty { padding:0.5rem; font-size:0.8rem; color:var(--text3); text-align:center; }
+
+/* Tags en ajustes */
+.settings-tag-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.settings-tag-row .tag { flex-shrink:0; }
+.settings-tag-row .tag-count { font-size:0.75rem; color:var(--text3); flex:1; }
+.settings-tag-row .btn-icon { font-size:0.8rem; }
+
 /* ── IMPORT ERRORS MODAL ── */
 .import-errors-list {
   max-height: 420px;

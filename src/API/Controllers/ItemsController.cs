@@ -12,7 +12,6 @@ public class ItemsController : ControllerBase
 
     public ItemsController(ItemService service) => _service = service;
 
-    /// <summary>Listado de artículos con filtros opcionales</summary>
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? platform,
@@ -20,13 +19,17 @@ public class ItemsController : ControllerBase
         [FromQuery] string? condition,
         [FromQuery] bool? isSold,
         [FromQuery] bool? isCollection,
-        [FromQuery] string? search)
+        [FromQuery] string? search,
+        [FromQuery] string? tags)   // ← coma-separados: "regalo,reservado"
     {
-        var items = await _service.GetAllAsync(platform, type, condition, isSold, isCollection, search);
+        var tagList = string.IsNullOrEmpty(tags)
+            ? null
+            : tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+
+        var items = await _service.GetAllAsync(platform, type, condition, isSold, isCollection, search, tagList);
         return Ok(items);
     }
 
-    /// <summary>Obtener un artículo por ID</summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -34,7 +37,6 @@ public class ItemsController : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
-    /// <summary>Crear artículo individual (sin lote)</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateItemRequest req)
     {
@@ -42,7 +44,6 @@ public class ItemsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
-    /// <summary>Actualizar artículo</summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateItemRequest req)
     {
@@ -50,7 +51,6 @@ public class ItemsController : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
-    /// <summary>Marcar artículo como vendido</summary>
     [HttpPost("{id}/sell")]
     public async Task<IActionResult> Sell(int id, [FromBody] SellItemRequest req)
     {
@@ -58,7 +58,6 @@ public class ItemsController : ControllerBase
         return item == null ? NotFound(new { error = "Artículo no encontrado o ya vendido" }) : Ok(item);
     }
 
-    /// <summary>Deshacer venta de un artículo</summary>
     [HttpPost("{id}/unsell")]
     public async Task<IActionResult> Unsell(int id)
     {
@@ -66,7 +65,6 @@ public class ItemsController : ControllerBase
         return item == null ? NotFound(new { error = "Artículo no encontrado o no está vendido" }) : Ok(item);
     }
 
-    /// <summary>Eliminar artículo</summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

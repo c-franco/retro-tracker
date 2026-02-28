@@ -145,6 +145,12 @@
           <option value="true">Vendido</option>
           <option value="collection">⭐ Colección</option>
         </select>
+        <div class="tag-filter-wrap">
+          <button class="tag-filter-btn" id="tagFilterBtn" onclick="App.toggleTagFilterDropdown()">
+            🏷️ Etiquetas <span id="tagFilterCount"></span>▾
+          </button>
+          <div class="tag-filter-dropdown" id="tagFilterDropdown"></div>
+        </div>
       </div>
 
       <div class="table-wrap">
@@ -156,6 +162,7 @@
               <th class="inv-col-plataforma">Plataforma</th>
               <th class="inv-col-estado">Estado</th>
               <th class="inv-col-lote">Lote</th>
+              <th class="inv-col-etiquetas">Etiquetas</th>
               <th class="inv-col-coste">Coste</th>
               <th class="inv-col-venta">Venta</th>
               <th class="inv-col-beneficio">Beneficio</th>
@@ -224,11 +231,19 @@
           <label>Notas
             <input type="text" id="qa-notes" placeholder="Wallapop, compra a..." />
           </label>
-          <label style="flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer;padding-top:1.4rem">
-            <input type="checkbox" id="qa-collection" style="width:auto;accent-color:var(--accent3)" />
-            <span style="font-size:0.85rem;color:var(--text2)">⭐ Colección personal</span>
-          </label>
         </div>
+        <label style="margin-bottom:1rem">Etiquetas
+          <div class="pill-input-wrap" id="qa-tags-wrap" onclick="document.getElementById('qa-tag-input').focus()">
+            <input type="text" id="qa-tag-input" placeholder="Añadir etiqueta..." autocomplete="off"
+                   oninput="App.tags.onInput('qa')" onkeydown="App.tags.onKey(event,'qa')" />
+          </div>
+          <div class="tag-suggestions" id="qa-tag-suggestions"></div>
+          <span style="font-size:0.75rem;color:var(--text3)">Enter o coma para añadir · ✕ para quitar</span>
+        </label>
+        <label style="flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer;margin-bottom:1rem">
+          <input type="checkbox" id="qa-collection" style="width:auto;accent-color:var(--accent3)" />
+          <span style="font-size:0.85rem;color:var(--text2)">⭐ Colección personal</span>
+        </label>
         <div class="form-actions">
           <button class="btn-primary btn-lg" onclick="App.quickAdd()">✅ Añadir al Inventario</button>
           <button class="btn-secondary" onclick="App.quickAddAndSell()">⚡ Añadir + Vender Ahora</button>
@@ -263,15 +278,22 @@
         <h3>Columnas del Inventario</h3>
         <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Elige qué columnas mostrar en la tabla de inventario. La columna Artículo siempre es visible.</p>
         <div class="col-toggles">
-          <label class="col-toggle"><input type="checkbox" data-col="tipo"      checked /> Tipo</label>
+          <label class="col-toggle"><input type="checkbox" data-col="tipo"       checked /> Tipo</label>
           <label class="col-toggle"><input type="checkbox" data-col="plataforma" checked /> Plataforma</label>
-          <label class="col-toggle"><input type="checkbox" data-col="estado"    checked /> Estado</label>
-          <label class="col-toggle"><input type="checkbox" data-col="lote"      checked /> Lote</label>
-          <label class="col-toggle"><input type="checkbox" data-col="coste"     checked /> Coste</label>
-          <label class="col-toggle"><input type="checkbox" data-col="venta"     checked /> Venta</label>
-          <label class="col-toggle"><input type="checkbox" data-col="beneficio" checked /> Beneficio</label>
-          <label class="col-toggle"><input type="checkbox" data-col="fecha"     checked /> Fecha</label>
+          <label class="col-toggle"><input type="checkbox" data-col="estado"     checked /> Estado</label>
+          <label class="col-toggle"><input type="checkbox" data-col="lote"       checked /> Lote</label>
+          <label class="col-toggle"><input type="checkbox" data-col="etiquetas"  checked /> Etiquetas</label>
+          <label class="col-toggle"><input type="checkbox" data-col="coste"      checked /> Coste</label>
+          <label class="col-toggle"><input type="checkbox" data-col="venta"      checked /> Venta</label>
+          <label class="col-toggle"><input type="checkbox" data-col="beneficio"  checked /> Beneficio</label>
+          <label class="col-toggle"><input type="checkbox" data-col="fecha"      checked /> Fecha</label>
         </div>
+      </div>
+      <div class="settings-card" style="margin-top:1.5rem;max-width:600px">
+        <h3>🏷️ Etiquetas</h3>
+        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem">Gestiona todas las etiquetas existentes. Puedes renombrarlas o eliminar las que no uses.</p>
+        <div id="settings-tags-list" style="display:flex;flex-direction:column;gap:0.4rem"></div>
+        <p id="settings-tags-empty" style="font-size:0.82rem;color:var(--text3);display:none">No hay etiquetas todavía. Añádelas al crear o editar artículos.</p>
       </div>
       <div id="settings-feedback" class="feedback-msg" style="margin-top:0.5rem"></div>
       <button class="btn-primary btn-lg" style="margin-top:1rem" onclick="App.saveAllSettings()">Guardar ajustes</button>
@@ -321,6 +343,14 @@
           </label>
         </div>
         <label>Notas<input type="text" id="item-notes" /></label>
+        <label style="margin-top:0.8rem">Etiquetas
+          <div class="pill-input-wrap" id="item-tags-wrap" onclick="document.getElementById('item-tag-input').focus()">
+            <input type="text" id="item-tag-input" placeholder="Añadir etiqueta..." autocomplete="off"
+                   oninput="App.tags.onInput('item')" onkeydown="App.tags.onKey(event,'item')" />
+          </div>
+          <div class="tag-suggestions" id="item-tag-suggestions"></div>
+          <span style="font-size:0.75rem;color:var(--text3)">Enter o coma para añadir · ✕ para quitar</span>
+        </label>
         <label class="toggle-label" style="margin-top:0.8rem;flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer">
           <input type="checkbox" id="item-is-collection" style="width:auto;accent-color:var(--accent3)" />
           <span>⭐ Guardar en colección personal</span>
@@ -467,6 +497,28 @@
       </div>
       <div class="modal-footer">
         <button class="btn-primary" onclick="App.closeModal('modal-import-errors')">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── MODAL: RENOMBRAR ETIQUETA ──── -->
+  <div class="modal-overlay" id="modal-rename-tag" onclick="App.closeModal('modal-rename-tag')">
+    <div class="modal modal-sm" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>✏️ Renombrar etiqueta</h2>
+        <button class="modal-close" onclick="App.closeModal('modal-rename-tag')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rename-tag-id" />
+        <label>Nuevo nombre
+          <input type="text" id="rename-tag-input" placeholder="Nombre de la etiqueta..."
+                 onkeydown="if(event.key==='Enter') App.confirmRenameTag()" />
+        </label>
+        <div id="rename-tag-preview" style="margin-top:0.8rem;min-height:1.5rem"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="App.closeModal('modal-rename-tag')">Cancelar</button>
+        <button class="btn-primary" onclick="App.confirmRenameTag()">Guardar</button>
       </div>
     </div>
   </div>

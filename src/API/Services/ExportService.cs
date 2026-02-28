@@ -16,13 +16,14 @@ public class ExportService
         "ID", "Tipo", "Nombre", "Plataforma", "Condicion", "Estado",
         "Lote", "Notas Lote", "Precio Compra", "Envio", "Coste Total",
         "Fecha Compra", "Vendido", "Precio Venta", "Fecha Venta",
-        "Beneficio", "Coleccion", "Notas"
+        "Beneficio", "Coleccion", "Notas", "Etiquetas"
     };
 
     public async Task<byte[]> ExportItemsToExcelAsync()
     {
         var items = await _db.Items
             .Include(i => i.Lot)
+            .Include(i => i.ItemTags).ThenInclude(it => it.Tag)
             .OrderByDescending(i => i.PurchaseDate)
             .ToListAsync();
 
@@ -48,7 +49,7 @@ public class ExportService
             ws.Cell(row, 3).Value  = item.Name;
             ws.Cell(row, 4).Value  = item.Platform ?? "";
             ws.Cell(row, 5).Value  = item.Condition.ToString();
-            ws.Cell(row, 6).Value  = item.Condition.ToString(); // Estado legible
+            ws.Cell(row, 6).Value  = item.Condition.ToString();
             ws.Cell(row, 7).Value  = item.Lot?.Name ?? "Sin lote";
             ws.Cell(row, 8).Value  = item.Lot?.Notes ?? "";
             ws.Cell(row, 9).Value  = item.PurchasePrice;
@@ -61,6 +62,8 @@ public class ExportService
             ws.Cell(row, 16).Value = item.Profit.HasValue ? item.Profit.Value : 0;
             ws.Cell(row, 17).Value = item.IsCollection ? "Si" : "No";
             ws.Cell(row, 18).Value = item.Notes ?? "";
+            // Col 19: tags separadas por coma
+            ws.Cell(row, 19).Value = string.Join(", ", item.ItemTags.Select(it => it.Tag.Name).OrderBy(t => t));
 
             if (item.IsSold)
                 ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#d8f3dc");

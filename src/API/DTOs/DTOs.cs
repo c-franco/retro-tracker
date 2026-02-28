@@ -19,20 +19,22 @@ public record ItemDto(
     DateTime? SaleDate,
     decimal? Profit,
     string? Notes,
-    bool IsCollection
+    bool IsCollection,
+    List<string> Tags          // ← nuevo
 );
 
 public record CreateItemRequest(
-    string Type,          // "Console" | "VideoGame" | "Accessory"
+    string Type,
     string Name,
     string? Platform,
-    string Condition,     // "New" | "Used" | "NeedsRepair"
+    string Condition,
     int? LotId,
     decimal PurchasePrice,
     decimal ShippingCost,
     DateTime? PurchaseDate,
     string? Notes,
-    bool IsCollection = false
+    bool IsCollection = false,
+    List<string>? Tags = null  // ← nuevo
 );
 
 public record UpdateItemRequest(
@@ -44,12 +46,21 @@ public record UpdateItemRequest(
     decimal? ShippingCost,
     DateTime? PurchaseDate,
     string? Notes,
-    bool? IsCollection
+    bool? IsCollection,
+    List<string>? Tags = null  // ← nuevo
 );
 
 public record SellItemRequest(
     decimal SalePrice,
     DateTime? SaleDate
+);
+
+// ───── TAGS ─────
+
+public record TagDto(
+    int Id,
+    string Name,
+    int ItemCount
 );
 
 // ───── LOTS ─────
@@ -76,7 +87,7 @@ public record CreateLotRequest(
     DateTime? PurchaseDate,
     decimal TotalPurchasePrice,
     decimal TotalShippingCost,
-    List<LotItemRequest> Items  // Artículos con su precio proporcional
+    List<LotItemRequest> Items
 );
 
 public record LotItemRequest(
@@ -84,12 +95,10 @@ public record LotItemRequest(
     string Name,
     string? Platform,
     string Condition,
-    decimal PurchasePrice,   // Ya calculado por el usuario o automático
+    decimal PurchasePrice,
     decimal ShippingCost,
     string? Notes
 );
-
-
 
 public record UpdateLotRequest(
     string Name,
@@ -100,17 +109,18 @@ public record UpdateLotRequest(
 public record AddItemsToLotRequest(
     List<LotItemRequest> Items
 );
+
 // ───── DASHBOARD ─────
 
 public record DashboardDto(
     decimal InitialBalance,
-    decimal TotalInvested,       // Suma de todos los costes de compra
-    decimal TotalRevenue,        // Suma de todas las ventas
-    decimal TotalProfit,         // Revenue - Invested
-    decimal CurrentBalance,      // InitialBalance + Profit
+    decimal TotalInvested,
+    decimal TotalRevenue,
+    decimal TotalProfit,
+    decimal CurrentBalance,
     bool IsPositive,
-    decimal StockValue,          // Valor artículos en stock para venta
-    decimal CollectionValue,     // Valor artículos en colección personal
+    decimal StockValue,
+    decimal CollectionValue,
     int TotalItems,
     int SoldItems,
     int StockItems,

@@ -10,7 +10,35 @@ let currentItemId = null;
 let currentSellCost = 0;
 let lotItemCount = 0;
 let recentItems = [];
-let _currency = 'EUR'; // Moneda activa — se actualiza al cargar/guardar ajustes
+let _currency = 'EUR';
+
+// ═══════════════════════════════════════════
+// SISTEMA DE ETIQUETAS
+// ═══════════════════════════════════════════
+
+// Cache de todos los tags existentes (id, name, itemCount)
+let _allTags = [];
+
+async function loadTagsCache() {
+  try { _allTags = await App.get('/tags'); } catch {}
+}
+
+// Devuelve un color CSS consistente basado en el nombre del tag
+function tagColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return `tag-c${h % 6}`;
+}
+
+// Renderiza una pill con botón de quitar (para pill-inputs)
+function tagPillRemovable(name) {
+  return `<span class="tag ${tagColor(name)}" data-tag="${escapeHtml(name)}">${escapeHtml(name)}<em class="tag-remove" onclick="App.tags.removePill(this)">✕</em></span>`;
+}
+
+// Renderiza una pill de solo lectura (para tabla)
+function tagPillReadonly(name) {
+  return `<span class="tag ${tagColor(name)}">${escapeHtml(name)}</span>`;
+}
 
 // ═══════════════════════════════════════════
 // PLATAFORMAS
@@ -78,7 +106,7 @@ function populatePlatformSelects() {
 // COLUMNAS VISIBLES EN INVENTARIO
 // ═══════════════════════════════════════════
 
-const ALL_COLS = ['tipo','plataforma','estado','lote','coste','venta','beneficio','fecha'];
+const ALL_COLS = ['tipo','plataforma','estado','lote','coste','venta','beneficio','fecha','etiquetas'];
 const LS_COLS_KEY = 'rtVisibleCols';
 
 function getVisibleCols() {
@@ -132,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   populatePlatformSelects();
   applyVisibleCols();
+  await loadTagsCache();
   App.showView('dashboard');
 });
 
@@ -226,7 +255,7 @@ const App = {
     document.getElementById('sidebar').classList.remove('open');
 
     if (view === 'dashboard') App.loadDashboard();
-    if (view === 'inventory') App.loadInventory();
+    if (view === 'inventory') { loadTagsCache().then(() => { App.populateTagFilter(); App.loadInventory(); }); }
     if (view === 'lots')      App.loadLots();
     if (view === 'settings')  { App.loadSettings(); loadColToggles(); }
     if (view === 'quick-add') { V.clearAll(document.getElementById('view-quick-add')); App.loadRecentItems(); }
@@ -351,12 +380,60 @@ const App = {
     else if (statusFilter === 'false') { params.set('isSold', 'false'); params.set('isCollection', 'false'); }
     else if (statusFilter === 'true') params.set('isSold', 'true');
 
+    // Filtro por tags activos
+    const activeTags = App.getActiveTagFilters();
+    if (activeTags.length) params.set('tags', activeTags.join(','));
+
     try {
       const items = await App.get(`/items?${params}`);
       App.renderInventoryTable(items);
     } catch (e) {
       App.toast('Error cargando inventario', 'error');
     }
+  },
+
+  // Devuelve los tags seleccionados en el dropdown de filtro
+  getActiveTagFilters() {
+    return Array.from(document.querySelectorAll('#tagFilterDropdown input:checked'))
+      .map(cb => cb.dataset.tag);
+  },
+
+  // Pobla el dropdown de filtro de tags con los tags del cache
+  populateTagFilter() {
+    const dd = document.getElementById('tagFilterDropdown');
+    if (!dd) return;
+    const active = App.getActiveTagFilters();
+    if (!_allTags.length) {
+      dd.innerHTML = '<div class="tag-filter-empty">Sin etiquetas aún</div>';
+      return;
+    }
+    dd.innerHTML = _allTags.map(t =>
+      `<label class="tag-filter-option">
+        <input type="checkbox" data-tag="${escapeHtml(t.name)}" ${active.includes(t.name) ? 'checked' : ''}
+               onchange="App.onTagFilterChange()" />
+        ${tagPillReadonly(t.name)}
+        <span style="color:var(--text3);font-size:0.72rem;margin-left:auto">${t.itemCount}</span>
+      </label>`
+    ).join('');
+  },
+
+  toggleTagFilterDropdown() {
+    const dd = document.getElementById('tagFilterDropdown');
+    dd.classList.toggle('open');
+  },
+
+  onTagFilterChange() {
+    const active = App.getActiveTagFilters();
+    const btn = document.getElementById('tagFilterBtn');
+    const countEl = document.getElementById('tagFilterCount');
+    if (active.length) {
+      btn.classList.add('has-active');
+      countEl.textContent = `(${active.length}) `;
+    } else {
+      btn.classList.remove('has-active');
+      countEl.textContent = '';
+    }
+    App.loadInventory();
   },
 
   renderInventoryTable(items) {
@@ -378,6 +455,11 @@ const App = {
         <td class="inv-col-plataforma"><span class="badge">${item.platform || '—'}</span></td>
         <td class="inv-col-estado">${condBadge(item.condition)}</td>
         <td class="inv-col-lote">${item.lotName ? `<span class="badge">${escapeHtml(item.lotName)}</span>` : '<span style="color:#555">—</span>'}</td>
+        <td class="inv-col-etiquetas">
+          <div class="tags-cell">
+            ${(item.tags || []).map(tagPillReadonly).join('') || '<span style="color:var(--text3)">—</span>'}
+          </div>
+        </td>
         <td class="inv-col-coste neutral">${fmt(item.totalCost)}</td>
         <td class="inv-col-venta">${item.salePrice ? fmt(item.salePrice) : '<span style="color:#555">—</span>'}</td>
         <td class="inv-col-beneficio">${profit}</td>
@@ -424,6 +506,7 @@ const App = {
       document.getElementById('item-lot-id').value         = item.lotId || '';
       document.getElementById('item-notes').value          = item.notes || '';
       document.getElementById('item-is-collection').checked = item.isCollection || false;
+      App.tags.load('item', item.tags || []);
     } else {
       ['item-id','item-name','item-notes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('item-platform').value       = '';
@@ -432,6 +515,7 @@ const App = {
       document.getElementById('item-purchase-date').value  = new Date().toISOString().split('T')[0];
       document.getElementById('item-lot-id').value         = '';
       document.getElementById('item-is-collection').checked = false;
+      App.tags.clear('item');
     }
 
     populatePlatformSelects();
@@ -466,7 +550,8 @@ const App = {
       purchaseDate:  dateEl.value,
       lotId:         document.getElementById('item-lot-id').value || null,
       notes:         document.getElementById('item-notes').value.trim(),
-      isCollection:  document.getElementById('item-is-collection').checked
+      isCollection:  document.getElementById('item-is-collection').checked,
+      tags:          App.tags.get('item')
     };
   },
 
@@ -478,6 +563,8 @@ const App = {
       if (id) { await App.put(`/items/${id}`, body);  App.toast('Artículo actualizado ✅'); }
       else    { await App.post('/items', body);         App.toast('Artículo añadido ✅'); }
       App.closeModal('modal-item');
+      await loadTagsCache();
+      App.populateTagFilter();
       App.loadInventory();
     } catch (e) {
       App.toast('Error guardando artículo', 'error');
@@ -934,7 +1021,8 @@ const App = {
       shippingCost:  parseFloat(shipEl.value),
       purchaseDate:  dateEl.value,
       notes:         document.getElementById('qa-notes').value.trim(),
-      isCollection:  document.getElementById('qa-collection')?.checked || false
+      isCollection:  document.getElementById('qa-collection')?.checked || false,
+      tags:          App.tags.get('qa')
     };
   },
 
@@ -945,6 +1033,7 @@ const App = {
       const created = await App.post('/items', item);
       App.toast(`✅ ${created.name} añadido`);
       App.clearQuickForm();
+      await loadTagsCache();
       App.loadRecentItems();
     } catch (e) {
       App.toast('Error al añadir', 'error');
@@ -967,6 +1056,7 @@ const App = {
       await App.post(`/items/${created.id}/sell`, { salePrice, saleDate: item.purchaseDate });
       App.toast(`✅ ${created.name} añadido y vendido`);
       App.clearQuickForm();
+      await loadTagsCache();
       App.loadRecentItems();
     } catch (e) {
       App.toast('Error', 'error');
@@ -983,6 +1073,7 @@ const App = {
     document.getElementById('qa-notes').value    = '';
     document.getElementById('qa-collection').checked = false;
     document.getElementById('qa-feedback').innerHTML  = '';
+    App.tags.clear('qa');
   },
 
   async loadRecentItems() {
@@ -1016,6 +1107,70 @@ const App = {
     _currency = s.currency || 'EUR';
     V.watch(document.getElementById('settings-balance'));
     V.watch(document.getElementById('settings-currency'));
+
+    // Cargar lista de etiquetas
+    await loadTagsCache();
+    const list  = document.getElementById('settings-tags-list');
+    const empty = document.getElementById('settings-tags-empty');
+    if (!_allTags.length) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      list.innerHTML = _allTags.map(t => `
+        <div class="settings-tag-row" id="settings-tag-${t.id}">
+          ${tagPillReadonly(t.name)}
+          <span class="tag-count">${t.itemCount} artículo${t.itemCount !== 1 ? 's' : ''}</span>
+          <button class="btn-icon" title="Renombrar" onclick="App.renameTag(${t.id},'${escapeHtml(t.name)}')">✏️</button>
+          <button class="btn-icon" title="Eliminar"  onclick="App.deleteTag(${t.id},'${escapeHtml(t.name)}')">🗑️</button>
+        </div>`).join('');
+    }
+  },
+
+  renameTag(id, currentName) {
+    document.getElementById('rename-tag-id').value = id;
+    const input = document.getElementById('rename-tag-input');
+    input.value = currentName;
+    // Preview en tiempo real
+    const preview = document.getElementById('rename-tag-preview');
+    preview.innerHTML = tagPillReadonly(currentName);
+    input.oninput = () => {
+      const val = input.value.trim().toLowerCase();
+      preview.innerHTML = val ? tagPillReadonly(val) : '';
+    };
+    App.openModal('modal-rename-tag');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+  },
+
+  async confirmRenameTag() {
+    const id      = document.getElementById('rename-tag-id').value;
+    const newName = document.getElementById('rename-tag-input').value.trim();
+    if (!newName) { App.toast('El nombre no puede estar vacío', 'error'); return; }
+    try {
+      await App.put(`/tags/${id}`, { name: newName });
+      App.toast('Etiqueta renombrada ✅');
+      App.closeModal('modal-rename-tag');
+      App.loadSettings();
+    } catch (e) {
+      App.toast('Error: ese nombre ya existe o no es válido', 'error');
+    }
+  },
+
+  async deleteTag(id, name) {
+    const confirmed = await App.confirmDialog.show({
+      icon: '🏷️',
+      title: `Eliminar etiqueta "${name}"`,
+      message: `Se eliminará de todos los artículos que la tengan.`,
+      confirmText: 'Eliminar', danger: true
+    });
+    if (!confirmed) return;
+    try {
+      await App.delete(`/tags/${id}`);
+      App.toast('Etiqueta eliminada 🗑️');
+      App.loadSettings();
+    } catch (e) {
+      App.toast('Error eliminando etiqueta', 'error');
+    }
   },
 
   async saveAllSettings() {
@@ -1222,3 +1377,122 @@ function escapeHtml(str) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// ═══════════════════════════════════════════
+// TAGS — operaciones (después de App)
+// ═══════════════════════════════════════════
+
+App.tags = {
+  get(prefix) {
+    return Array.from(document.querySelectorAll(`#${prefix}-tags-wrap .tag`))
+      .map(el => el.dataset.tag);
+  },
+
+  clear(prefix) {
+    const wrap = document.getElementById(`${prefix}-tags-wrap`);
+    if (!wrap) return;
+    wrap.querySelectorAll('.tag').forEach(el => el.remove());
+    const inp = document.getElementById(`${prefix}-tag-input`);
+    if (inp) inp.value = '';
+    const sug = document.getElementById(`${prefix}-tag-suggestions`);
+    if (sug) { sug.innerHTML = ''; sug.classList.remove('open'); }
+  },
+
+  load(prefix, names) {
+    App.tags.clear(prefix);
+    const wrap = document.getElementById(`${prefix}-tags-wrap`);
+    const inp  = document.getElementById(`${prefix}-tag-input`);
+    if (!wrap || !inp) return;
+    names.forEach(name => wrap.insertBefore(_parsePill(name), inp));
+  },
+
+  add(prefix, name) {
+    name = name.trim().toLowerCase();
+    if (!name) return;
+    if (App.tags.get(prefix).includes(name)) return;
+    const wrap = document.getElementById(`${prefix}-tags-wrap`);
+    const inp  = document.getElementById(`${prefix}-tag-input`);
+    if (!wrap || !inp) return;
+    wrap.insertBefore(_parsePill(name), inp);
+    inp.value = '';
+    App.tags.hideSuggestions(prefix);
+  },
+
+  removePill(btn) { btn.closest('.tag').remove(); },
+
+  onInput(prefix) {
+    const inp = document.getElementById(`${prefix}-tag-input`);
+    const raw = inp.value;
+
+    // Detectar coma como separador (funciona en todos los teclados)
+    if (raw.includes(',')) {
+      const parts = raw.split(',');
+      // Añadir todo excepto el último fragmento (que puede estar escribiéndose)
+      parts.slice(0, -1).forEach(p => App.tags.add(prefix, p));
+      inp.value = parts[parts.length - 1];
+    }
+
+    const val = inp.value.trim().toLowerCase();
+    if (!val) { App.tags.hideSuggestions(prefix); return; }
+    const existing = App.tags.get(prefix);
+    const matches  = _allTags.filter(t => t.name.includes(val) && !existing.includes(t.name));
+    App.tags.showSuggestions(prefix, val, matches);
+  },
+
+  onKey(e, prefix) {
+    const inp = e.target;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      const val = inp.value.trim();
+      if (val) App.tags.add(prefix, val);
+    } else if (e.key === 'Backspace' && !inp.value) {
+      const pills = document.getElementById(`${prefix}-tags-wrap`)?.querySelectorAll('.tag');
+      if (pills?.length) pills[pills.length - 1].remove();
+    } else if (e.key === 'Escape') {
+      App.tags.hideSuggestions(prefix);
+    }
+  },
+
+  showSuggestions(prefix, val, matches) {
+    const box = document.getElementById(`${prefix}-tag-suggestions`);
+    if (!box) return;
+    const items = matches.map(t =>
+      `<div class="tag-suggestion-item" onclick="App.tags.add('${prefix}','${escapeHtml(t.name)}')">
+         ${tagPillReadonly(t.name)}
+         <span class="tag-suggestion-count">${t.itemCount} art.</span>
+       </div>`
+    );
+    const exactExists = _allTags.some(t => t.name === val);
+    if (!exactExists && val) {
+      items.push(`<div class="tag-suggestion-item" onclick="App.tags.add('${prefix}','${escapeHtml(val)}')">
+        <span style="color:var(--accent);font-size:0.8rem">+ Crear "<strong>${escapeHtml(val)}</strong>"</span>
+       </div>`);
+    }
+    box.innerHTML = items.join('');
+    box.classList.toggle('open', items.length > 0);
+  },
+
+  hideSuggestions(prefix) {
+    const box = document.getElementById(`${prefix}-tag-suggestions`);
+    if (box) { box.innerHTML = ''; box.classList.remove('open'); }
+  },
+};
+
+function _parsePill(name) {
+  const span = document.createElement('span');
+  span.className  = `tag ${tagColor(name)}`;
+  span.dataset.tag = name;
+  span.innerHTML  = `${escapeHtml(name)}<em class="tag-remove" onclick="App.tags.removePill(this)">✕</em>`;
+  return span;
+}
+
+// Cerrar dropdowns al click fuera
+document.addEventListener('click', e => {
+  if (!e.target.closest('.tag-filter-wrap'))
+    document.getElementById('tagFilterDropdown')?.classList.remove('open');
+  if (!e.target.closest('.pill-input-wrap') && !e.target.closest('.tag-suggestions')) {
+    App.tags.hideSuggestions('item');
+    App.tags.hideSuggestions('qa');
+  }
+});
