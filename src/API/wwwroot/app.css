@@ -723,6 +723,52 @@ select.field-error option {
 .neutral  { color: var(--text2); }
 .row-collection { background: rgba(255,214,10,0.04) !important; }
 
+/* ── COLUMN TOGGLES (settings) ── */
+.col-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.col-toggle {
+  display: flex;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: var(--text2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.col-toggle:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.col-toggle input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Columnas ocultables de la tabla de inventario */
+.inv-col-tipo      { }
+.inv-col-plataforma{ }
+.inv-col-estado    { }
+.inv-col-lote      { }
+.inv-col-coste     { }
+.inv-col-venta     { }
+.inv-col-beneficio { }
+.inv-col-fecha     { }
+
+.inv-col-hidden { display: none !important; }
+
 /* ── CONFIRM MODAL ── */
 .confirm-modal {
   max-width: 360px;

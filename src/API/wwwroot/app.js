@@ -75,8 +75,41 @@ function populatePlatformSelects() {
 }
 
 // ═══════════════════════════════════════════
-// INICIALIZACIÓN
+// COLUMNAS VISIBLES EN INVENTARIO
 // ═══════════════════════════════════════════
+
+const ALL_COLS = ['tipo','plataforma','estado','lote','coste','venta','beneficio','fecha'];
+const LS_COLS_KEY = 'rtVisibleCols';
+
+function getVisibleCols() {
+  try {
+    const stored = localStorage.getItem(LS_COLS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return [...ALL_COLS]; // todas visibles por defecto
+}
+
+function saveVisibleCols(cols) {
+  localStorage.setItem(LS_COLS_KEY, JSON.stringify(cols));
+}
+
+function applyVisibleCols() {
+  const visible = getVisibleCols();
+  ALL_COLS.forEach(col => {
+    const hidden = !visible.includes(col);
+    document.querySelectorAll(`.inv-col-${col}`)
+      .forEach(el => el.classList.toggle('inv-col-hidden', hidden));
+  });
+}
+
+function loadColToggles() {
+  const visible = getVisibleCols();
+  document.querySelectorAll('[data-col]').forEach(cb => {
+    cb.checked = visible.includes(cb.dataset.col);
+  });
+}
+
+
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.nav-link').forEach(link => {
@@ -98,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch { /* usar EUR por defecto */ }
 
   populatePlatformSelects();
+  applyVisibleCols();
   App.showView('dashboard');
 });
 
@@ -194,7 +228,7 @@ const App = {
     if (view === 'dashboard') App.loadDashboard();
     if (view === 'inventory') App.loadInventory();
     if (view === 'lots')      App.loadLots();
-    if (view === 'settings')  App.loadSettings();
+    if (view === 'settings')  { App.loadSettings(); loadColToggles(); }
     if (view === 'quick-add') App.loadRecentItems();
   },
 
@@ -328,7 +362,7 @@ const App = {
   renderInventoryTable(items) {
     const tbody = document.querySelector('#inventory-table tbody');
     if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">Sin artículos</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#555;padding:2rem">Sin artículos</td></tr>';
       return;
     }
     tbody.innerHTML = items.map(item => {
@@ -340,13 +374,14 @@ const App = {
         : '';
       return `<tr class="${item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
-        <td>${typeBadge(item.type)}</td>
-        <td><span class="badge">${item.platform || '—'}</span></td>
-        <td>${item.lotName ? `<span class="badge">${escapeHtml(item.lotName)}</span>` : '<span style="color:#555">—</span>'}</td>
-        <td class="neutral">${fmt(item.totalCost)}</td>
-        <td>${item.salePrice ? fmt(item.salePrice) : '<span style="color:#555">—</span>'}</td>
-        <td>${profit}</td>
-        <td class="neutral" style="font-size:0.78rem">${fmtDate(item.purchaseDate)}</td>
+        <td class="inv-col-tipo">${typeBadge(item.type)}</td>
+        <td class="inv-col-plataforma"><span class="badge">${item.platform || '—'}</span></td>
+        <td class="inv-col-estado">${condBadge(item.condition)}</td>
+        <td class="inv-col-lote">${item.lotName ? `<span class="badge">${escapeHtml(item.lotName)}</span>` : '<span style="color:#555">—</span>'}</td>
+        <td class="inv-col-coste neutral">${fmt(item.totalCost)}</td>
+        <td class="inv-col-venta">${item.salePrice ? fmt(item.salePrice) : '<span style="color:#555">—</span>'}</td>
+        <td class="inv-col-beneficio">${profit}</td>
+        <td class="inv-col-fecha neutral" style="font-size:0.78rem">${fmtDate(item.purchaseDate)}</td>
         <td>
           <div style="display:flex;gap:4px">
             ${!item.isSold && !item.isCollection
@@ -360,6 +395,7 @@ const App = {
         </td>
       </tr>`;
     }).join('');
+    applyVisibleCols();
   },
 
   // ── Modal Artículo ───────────────────────
@@ -1016,6 +1052,13 @@ const App = {
         if (el) el.value = '';
       });
       populatePlatformSelects();
+
+      // Guardar columnas visibles en localStorage
+      const visibleCols = Array.from(document.querySelectorAll('[data-col]'))
+        .filter(cb => cb.checked)
+        .map(cb => cb.dataset.col);
+      saveVisibleCols(visibleCols);
+      applyVisibleCols();
 
       App.showFeedback('settings-feedback', 'Ajustes guardados ✅', 'success');
     } catch (e) {
