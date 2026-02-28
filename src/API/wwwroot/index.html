@@ -260,43 +260,56 @@
     <!-- ──── AJUSTES ──── -->
     <section id="view-settings" class="view">
       <div class="view-header"><h1>⚙️ Ajustes</h1></div>
-      <div class="settings-card">
-        <h3>Configuración Financiera</h3>
-        <label>Saldo inicial (€)
-          <input type="number" id="settings-balance" step="0.01" />
-        </label>
-        <label>Moneda
-          <input type="text" id="settings-currency" value="EUR" maxlength="3" />
-        </label>
-      </div>
-      <div class="settings-card" style="margin-top:1.5rem">
-        <h3>Plataformas</h3>
-        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Una plataforma por línea. Se usan en todos los desplegables de la aplicación.</p>
-        <textarea id="settings-platforms" rows="10" style="font-family:var(--font-mono);font-size:0.82rem;resize:vertical"></textarea>
-      </div>
-      <div class="settings-card" style="margin-top:1.5rem">
-        <h3>Columnas del Inventario</h3>
-        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Elige qué columnas mostrar en la tabla de inventario. La columna Artículo siempre es visible.</p>
-        <div class="col-toggles">
-          <label class="col-toggle"><input type="checkbox" data-col="tipo"       checked /> Tipo</label>
-          <label class="col-toggle"><input type="checkbox" data-col="plataforma" checked /> Plataforma</label>
-          <label class="col-toggle"><input type="checkbox" data-col="estado"     checked /> Estado</label>
-          <label class="col-toggle"><input type="checkbox" data-col="lote"       checked /> Lote</label>
-          <label class="col-toggle"><input type="checkbox" data-col="etiquetas"  checked /> Etiquetas</label>
-          <label class="col-toggle"><input type="checkbox" data-col="coste"      checked /> Coste</label>
-          <label class="col-toggle"><input type="checkbox" data-col="venta"      checked /> Venta</label>
-          <label class="col-toggle"><input type="checkbox" data-col="beneficio"  checked /> Beneficio</label>
-          <label class="col-toggle"><input type="checkbox" data-col="fecha"      checked /> Fecha</label>
+
+      <div class="settings-grid">
+        <!-- Columna izquierda -->
+        <div class="settings-col">
+          <div class="settings-card">
+            <h3>Configuración Financiera</h3>
+            <label>Saldo inicial (€)
+              <input type="number" id="settings-balance" step="0.01" />
+            </label>
+            <label>Moneda
+              <input type="text" id="settings-currency" value="EUR" maxlength="3" />
+            </label>
+          </div>
+          <div class="settings-card" style="margin-top:1rem">
+            <h3>Plataformas</h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Una plataforma por línea. Se usan en todos los desplegables de la aplicación.</p>
+            <textarea id="settings-platforms" rows="10" style="font-family:var(--font-mono);font-size:0.82rem;resize:vertical"></textarea>
+          </div>
+        </div>
+
+        <!-- Columna derecha -->
+        <div class="settings-col">
+          <div class="settings-card">
+            <h3>Columnas del Inventario</h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Elige qué columnas mostrar en la tabla de inventario. La columna Artículo siempre es visible.</p>
+            <div class="col-toggles">
+              <label class="col-toggle"><input type="checkbox" data-col="tipo"       checked /> Tipo</label>
+              <label class="col-toggle"><input type="checkbox" data-col="plataforma" checked /> Plataforma</label>
+              <label class="col-toggle"><input type="checkbox" data-col="estado"     checked /> Estado</label>
+              <label class="col-toggle"><input type="checkbox" data-col="lote"       checked /> Lote</label>
+              <label class="col-toggle"><input type="checkbox" data-col="etiquetas"  checked /> Etiquetas</label>
+              <label class="col-toggle"><input type="checkbox" data-col="coste"      checked /> Coste</label>
+              <label class="col-toggle"><input type="checkbox" data-col="venta"      checked /> Venta</label>
+              <label class="col-toggle"><input type="checkbox" data-col="beneficio"  checked /> Beneficio</label>
+              <label class="col-toggle"><input type="checkbox" data-col="fecha"      checked /> Fecha</label>
+            </div>
+          </div>
+          <div class="settings-card" style="margin-top:1rem">
+            <h3>🏷️ Etiquetas</h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem">Gestiona todas las etiquetas existentes. Puedes renombrarlas o eliminar las que no uses.</p>
+            <div id="settings-tags-list" style="display:flex;flex-direction:column;gap:0.4rem"></div>
+            <p id="settings-tags-empty" style="font-size:0.82rem;color:var(--text3);display:none">No hay etiquetas todavía. Añádelas al crear o editar artículos.</p>
+          </div>
         </div>
       </div>
-      <div class="settings-card" style="margin-top:1.5rem;max-width:600px">
-        <h3>🏷️ Etiquetas</h3>
-        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem">Gestiona todas las etiquetas existentes. Puedes renombrarlas o eliminar las que no uses.</p>
-        <div id="settings-tags-list" style="display:flex;flex-direction:column;gap:0.4rem"></div>
-        <p id="settings-tags-empty" style="font-size:0.82rem;color:var(--text3);display:none">No hay etiquetas todavía. Añádelas al crear o editar artículos.</p>
+
+      <div class="settings-footer">
+        <button class="btn-primary btn-lg" onclick="App.saveAllSettings()">Guardar ajustes</button>
+        <div id="settings-feedback" class="feedback-msg"></div>
       </div>
-      <div id="settings-feedback" class="feedback-msg" style="margin-top:0.5rem"></div>
-      <button class="btn-primary btn-lg" style="margin-top:1rem" onclick="App.saveAllSettings()">Guardar ajustes</button>
     </section>
 
   </main>
