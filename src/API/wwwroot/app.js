@@ -163,26 +163,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadTagsCache();
   App.showView('dashboard');
 
-  // Chart.js gestiona el resize de forma nativa (responsive: true)
-  // En mobile↔desktop hacemos solo re-render de charts sin llamar a la API
-  let _resizeTimer;
-  let _lastBreakpoint = window.innerWidth < 768 ? 'mobile' : 'desktop';
-  window.addEventListener('resize', () => {
-    clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(() => {
-      const newBreakpoint = window.innerWidth < 768 ? 'mobile' : 'desktop';
-      if (newBreakpoint !== _lastBreakpoint) {
-        _lastBreakpoint = newBreakpoint;
-        const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
-        if (dashActive && App._lastDashboardData) {
-          App.renderMonthlyChart(App._lastDashboardData.monthlyStats);
-          App.renderPlatformChart(App._lastDashboardData.platformStats);
-        }
-      }
-    }, 300);
-  });
+  // Chart.js con responsive:true y maintainAspectRatio:false gestiona el resize de forma nativa.
 
-  // Refrescar datos silenciosamente al volver a la pestaña
+  // Refrescar datos al volver a la pestaña (el flag _dashboardLoading evita concurrencia)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
@@ -295,21 +278,22 @@ const App = {
   // ── Dashboard ───────────────────────────
 
   async loadDashboard() {
-    // Mostrar datos cacheados inmediatamente si existen
-    if (App._lastDashboardData) {
-      App._renderDashboardData(App._lastDashboardData);
-    }
+    // Evitar llamadas concurrentes
+    if (App._dashboardLoading) return;
+    App._dashboardLoading = true;
 
     try {
       const data = await App.fetchWithRetry('/dashboard', 2);
       App._lastDashboardData = data;
       App._renderDashboardData(data);
     } catch (e) {
-      // Solo mostrar error si no tenemos datos cacheados
-      if (!App._lastDashboardData) {
-        App.toast('Error cargando dashboard', 'error');
+      console.error('[Dashboard]', e);
+      // Si falla y hay datos cacheados, mostrarlos
+      if (App._lastDashboardData) {
+        App._renderDashboardData(App._lastDashboardData);
       }
-      console.error('[Dashboard] Error tras reintentos:', e);
+    } finally {
+      App._dashboardLoading = false;
     }
   },
 
