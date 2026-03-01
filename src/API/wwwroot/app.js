@@ -309,6 +309,7 @@ const App = {
       if (!App._lastDashboardData) {
         App.toast('Error cargando dashboard', 'error');
       }
+      console.error('[Dashboard] Error tras reintentos:', e);
     }
   },
 
@@ -317,6 +318,7 @@ const App = {
       try {
         return await App.get(path);
       } catch (e) {
+        console.warn(`[fetchWithRetry] Intento ${i + 1}/${retries + 1} fallido para ${path}:`, e);
         if (i === retries) throw e;
         await new Promise(r => setTimeout(r, delayMs));
       }
@@ -1618,7 +1620,11 @@ const App = {
 
   async get(path) {
     const r = await fetch(API + path);
-    if (!r.ok) throw new Error(r.status);
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      console.error(`[API GET] ${path} → ${r.status} ${r.statusText}`, body);
+      throw new Error(r.status);
+    }
     return r.json();
   },
   async post(path, body) {
