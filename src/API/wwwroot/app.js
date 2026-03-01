@@ -163,14 +163,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadTagsCache();
   App.showView('dashboard');
 
-  // Re-renderizar charts al cambiar de tamaño de ventana
+  // Chart.js gestiona el resize de forma nativa (responsive: true)
+  // En mobile↔desktop hacemos solo re-render de charts sin llamar a la API
   let _resizeTimer;
+  let _lastBreakpoint = window.innerWidth < 768 ? 'mobile' : 'desktop';
   window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(() => {
-      const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
-      if (dashActive) App.loadDashboard();
-    }, 250);
+      const newBreakpoint = window.innerWidth < 768 ? 'mobile' : 'desktop';
+      if (newBreakpoint !== _lastBreakpoint) {
+        _lastBreakpoint = newBreakpoint;
+        const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
+        if (dashActive && App._lastDashboardData) {
+          App.renderMonthlyChart(App._lastDashboardData.monthlyStats);
+          App.renderPlatformChart(App._lastDashboardData.platformStats);
+        }
+      }
+    }, 300);
   });
 });
 
@@ -295,6 +304,7 @@ const App = {
       document.querySelector('.stat-card.balance .stat-value').style.color =
         data.currentBalance >= 0 ? 'var(--accent)' : 'var(--red)';
 
+      App._lastDashboardData = data;
       App.renderMonthlyChart(data.monthlyStats);
       App.renderPlatformChart(data.platformStats);
       App.renderPendingTable(data.pendingItems);
@@ -324,7 +334,7 @@ const App = {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             position: isMobile ? 'bottom' : 'top',
@@ -407,6 +417,7 @@ const App = {
       // Mostrar canvas, ocultar lista
       canvas.style.display = 'block';
       listEl.style.display = 'none';
+      if (chartPlatform) { chartPlatform.destroy(); chartPlatform = null; }
 
       chartPlatform = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
@@ -416,7 +427,19 @@ const App = {
         },
         options: {
           responsive: true,
-          plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } }
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: '#888',
+                font: { size: 11 },
+                boxWidth: 12,
+                padding: 8
+              }
+            }
+          }
         }
       });
     }

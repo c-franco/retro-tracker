@@ -215,6 +215,21 @@ body {
   font-weight: 600;
 }
 
+/* Contenedor con altura fija — Chart.js necesita esto para ser responsive */
+.chart-canvas-wrap {
+  position: relative;
+  height: 240px;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* El doughnut no necesita tanta altura */
+.chart-canvas-wrap--donut {
+  height: 240px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
 /* ── TABLES ── */
 .table-wrap {
   overflow-x: auto;
@@ -1068,9 +1083,10 @@ select.field-error option {
 
 /* Altura del chart mensual en móvil */
 @media (max-width: 768px) {
-  #chartMonthly { max-height: 260px; }
   .chart-card   { padding: 1rem; }
   .chart-card h3 { font-size: 0.82rem; margin-bottom: 0.75rem; }
+  .chart-canvas-wrap { height: 200px; }
+  .chart-canvas-wrap--donut { height: 200px; max-width: 220px; }
 }
 
 

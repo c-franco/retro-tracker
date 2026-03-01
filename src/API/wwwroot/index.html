@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕹️</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Retro Tracker 🎮</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="app.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retro Tracker 🎮</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="app.css" />
 </head>
 <body>
   <!-- SIDEBAR -->
@@ -97,12 +96,16 @@
       <div class="charts-row">
         <div class="chart-card">
           <h3>Compras vs Ventas (mensual)</h3>
-          <canvas id="chartMonthly" height="200"></canvas>
+          <div class="chart-canvas-wrap">
+            <canvas id="chartMonthly"></canvas>
+          </div>
         </div>
         <div class="chart-card" id="chart-platform-card">
           <h3>Por Plataforma</h3>
           <!-- Vista gráfico (escritorio) -->
-          <canvas id="chartPlatform" height="200"></canvas>
+          <div class="chart-canvas-wrap chart-canvas-wrap--donut">
+            <canvas id="chartPlatform"></canvas>
+          </div>
           <!-- Vista lista (móvil) -->
           <div id="platformList" class="platform-list" style="display:none"></div>
         </div>
