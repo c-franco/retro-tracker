@@ -181,6 +181,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }, 300);
   });
+
+  // Refrescar datos silenciosamente al volver a la pestaña
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
+      if (dashActive) App.loadDashboard();
+    }
+  });
 });
 
 // ═══════════════════════════════════════════
@@ -287,9 +295,35 @@ const App = {
   // ── Dashboard ───────────────────────────
 
   async loadDashboard() {
-    try {
-      const data = await App.get('/dashboard');
+    // Mostrar datos cacheados inmediatamente si existen
+    if (App._lastDashboardData) {
+      App._renderDashboardData(App._lastDashboardData);
+    }
 
+    try {
+      const data = await App.fetchWithRetry('/dashboard', 2);
+      App._lastDashboardData = data;
+      App._renderDashboardData(data);
+    } catch (e) {
+      // Solo mostrar error si no tenemos datos cacheados
+      if (!App._lastDashboardData) {
+        App.toast('Error cargando dashboard', 'error');
+      }
+    }
+  },
+
+  async fetchWithRetry(path, retries = 2, delayMs = 800) {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await App.get(path);
+      } catch (e) {
+        if (i === retries) throw e;
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  },
+
+  _renderDashboardData(data) {
       document.getElementById('stat-invested').textContent    = fmt(data.totalInvested);
       document.getElementById('stat-revenue').textContent     = fmt(data.totalRevenue);
       document.getElementById('stat-profit').textContent      = fmt(data.totalProfit);
@@ -304,14 +338,10 @@ const App = {
       document.querySelector('.stat-card.balance .stat-value').style.color =
         data.currentBalance >= 0 ? 'var(--accent)' : 'var(--red)';
 
-      App._lastDashboardData = data;
       App.renderMonthlyChart(data.monthlyStats);
       App.renderPlatformChart(data.platformStats);
       App.renderPendingTable(data.pendingItems);
       document.getElementById('pending-count').textContent = data.stockItems;
-    } catch (e) {
-      App.toast('Error cargando dashboard', 'error');
-    }
   },
 
   renderMonthlyChart(stats) {
