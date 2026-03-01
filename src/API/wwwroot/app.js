@@ -162,6 +162,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyVisibleCols();
   await loadTagsCache();
   App.showView('dashboard');
+
+  // Re-renderizar charts al cambiar de tamaño de ventana
+  let _resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      const dashActive = document.getElementById('view-dashboard')?.classList.contains('active');
+      if (dashActive) App.loadDashboard();
+    }, 250);
+  });
 });
 
 // ═══════════════════════════════════════════
@@ -297,21 +307,55 @@ const App = {
   renderMonthlyChart(stats) {
     const ctx = document.getElementById('chartMonthly').getContext('2d');
     if (chartMonthly) chartMonthly.destroy();
+
+    const isMobile = window.innerWidth < 768;
+
     chartMonthly = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: stats.map(s => `${s.monthName.slice(0, 3)} ${s.year}`),
+        labels: stats.map(s => isMobile
+          ? s.monthName.slice(0, 3)
+          : `${s.monthName.slice(0, 3)} ${s.year}`
+        ),
         datasets: [
-          { label: 'Invertido',   data: stats.map(s => s.invested), backgroundColor: 'rgba(255,107,53,0.7)' },
-          { label: 'Recuperado',  data: stats.map(s => s.revenue),  backgroundColor: 'rgba(0,255,136,0.7)' }
+          { label: 'Invertido',  data: stats.map(s => s.invested), backgroundColor: 'rgba(255,107,53,0.7)' },
+          { label: 'Recuperado', data: stats.map(s => s.revenue),  backgroundColor: 'rgba(0,255,136,0.7)'  }
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } },
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: isMobile ? 'bottom' : 'top',
+            labels: {
+              color: '#888',
+              font: { size: isMobile ? 10 : 11 },
+              boxWidth: isMobile ? 10 : 14,
+              padding: isMobile ? 8 : 10
+            }
+          }
+        },
         scales: {
-          x: { ticks: { color: '#555' }, grid: { color: '#222' } },
-          y: { ticks: { color: '#555', callback: v => `${v}€` }, grid: { color: '#222' } }
+          x: {
+            ticks: {
+              color: '#555',
+              font: { size: isMobile ? 9 : 11 },
+              maxRotation: isMobile ? 45 : 0,
+              minRotation: isMobile ? 45 : 0,
+              maxTicksLimit: isMobile ? 6 : 12
+            },
+            grid: { color: '#222' }
+          },
+          y: {
+            ticks: {
+              color: '#555',
+              font: { size: isMobile ? 9 : 11 },
+              callback: v => `${v}€`,
+              maxTicksLimit: isMobile ? 4 : 6
+            },
+            grid: { color: '#222' }
+          }
         }
       }
     });
@@ -319,8 +363,8 @@ const App = {
 
   renderPlatformChart(stats) {
     if (!stats.length) return;
-    const ctx = document.getElementById('chartPlatform').getContext('2d');
-    if (chartPlatform) chartPlatform.destroy();
+
+    const isMobile = window.innerWidth < 768;
     const platformColors = {
       'GB':'#5a8a00','GBC':'#7ab800','GBA':'#9fd600','DS':'#c8f000','3DS':'#f0e000',
       'NES':'#e84000','SNES':'#cc2200','N64':'#a80000','GCN':'#6a0dad',
@@ -334,14 +378,48 @@ const App = {
     const fallback = ['#ff00aa','#00ffcc','#ff99ff','#ffcc00','#cc00ff','#00ff66'];
     let fi = 0;
     const colors = stats.map(s => platformColors[s.platform] || fallback[fi++ % fallback.length]);
-    chartPlatform = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: stats.map(s => s.platform),
-        datasets: [{ data: stats.map(s => s.totalItems), backgroundColor: colors, borderWidth: 0 }]
-      },
-      options: { responsive: true, plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } } }
-    });
+
+    const canvas     = document.getElementById('chartPlatform');
+    const listEl     = document.getElementById('platformList');
+
+    if (isMobile) {
+      // Ocultar canvas, mostrar lista
+      canvas.style.display = 'none';
+      listEl.style.display = 'block';
+      if (chartPlatform) { chartPlatform.destroy(); chartPlatform = null; }
+
+      const total = stats.reduce((sum, s) => sum + s.totalItems, 0);
+      // Mostrar top 8 para no saturar
+      listEl.innerHTML = stats.slice(0, 8).map((s, i) => {
+        const pct = total > 0 ? Math.round(s.totalItems / total * 100) : 0;
+        const color = colors[i];
+        return `<div class="platform-row">
+          <div class="platform-row-top">
+            <span class="platform-name">${s.platform}</span>
+            <span class="platform-count">${s.totalItems} art. · ${pct}%</span>
+          </div>
+          <div class="platform-bar-bg">
+            <div class="platform-bar-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      // Mostrar canvas, ocultar lista
+      canvas.style.display = 'block';
+      listEl.style.display = 'none';
+
+      chartPlatform = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: stats.map(s => s.platform),
+          datasets: [{ data: stats.map(s => s.totalItems), backgroundColor: colors, borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } }
+        }
+      });
+    }
   },
 
   renderPendingTable(items) {
