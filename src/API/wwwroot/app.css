@@ -561,6 +561,7 @@ select.field-error option {
 }
 
 .lot-item-row.sold { opacity: 0.5; text-decoration: line-through; }
+.lot-item-row.lot-item-collection { background: rgba(255,214,10,0.07); }
 
 /* ── LOT FORM ITEMS ── */
 .lot-items-section {
@@ -637,6 +638,11 @@ select.field-error option {
   padding: 1rem;
 }
 .modal-overlay.open { display: flex; }
+
+/* Modales que se abren encima de otro modal (ej: editar lote desde detalle) */
+#modal-edit-lot, #modal-add-to-lot, #modal-sell {
+  z-index: 600;
+}
 
 .modal {
   background: var(--surface);
@@ -956,6 +962,68 @@ select.field-error option {
 .inv-col-fecha     { }
 
 .inv-col-hidden { display: none !important; }
+
+/* ── LOTS TABLE ── */
+.badge-lot-code {
+  background: rgba(0,255,136,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(0,255,136,0.2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.3px;
+}
+
+.lots-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text2);
+}
+.lots-progress-bar {
+  width: 44px;
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.lots-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+/* ── LOT DETAIL MODAL ── */
+.lot-detail-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+}
+.lot-detail-stat {
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 0.7rem;
+  text-align: center;
+}
+.lot-detail-stat-val {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.lot-detail-stat-lbl {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text2);
+  margin-top: 3px;
+}
+
+@media (max-width: 600px) {
+  .lot-detail-stat-grid { grid-template-columns: repeat(3, 1fr); }
+}
 
 /* ── PLATFORM LIST (móvil) ── */
 .platform-list {

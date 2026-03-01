@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.TotalPurchasePrice).HasColumnType("decimal(18,2)");
             e.Property(x => x.TotalShippingCost).HasColumnType("decimal(18,2)");
             e.Ignore(x => x.TotalCost);
+            e.HasIndex(x => x.Code).IsUnique();
         });
 
         modelBuilder.Entity<AppSettings>(e =>

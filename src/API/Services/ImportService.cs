@@ -19,10 +19,32 @@ public class ImportService
         List<ImportError> Errors
     );
 
+    // Posiciones de columna (1-based) — deben coincidir con ExportService.InventoryHeaders
+    private const int C_ID           = 1;
+    private const int C_TYPE         = 2;
+    private const int C_NAME         = 3;
+    private const int C_PLATFORM     = 4;
+    private const int C_CONDITION    = 5;
+    private const int C_STATUS       = 6;   // Estado (informativo, no se importa)
+    private const int C_LOT_CODE     = 7;   // Codigo Lote
+    private const int C_LOT_NAME     = 8;   // Nombre Lote
+    private const int C_LOT_NOTES    = 9;   // Notas Lote
+    private const int C_PRICE        = 10;  // Precio Compra
+    private const int C_SHIPPING     = 11;  // Envio
+    private const int C_TOTAL        = 12;  // Coste Total (calculado, no se importa)
+    private const int C_PURCHASE_DATE = 13; // Fecha Compra
+    private const int C_SOLD         = 14;  // Vendido
+    private const int C_SALE_PRICE   = 15;  // Precio Venta
+    private const int C_SALE_DATE    = 16;  // Fecha Venta
+    private const int C_BENEFIT      = 17;  // Beneficio (calculado, no se importa)
+    private const int C_COLLECTION   = 18;  // Coleccion
+    private const int C_NOTES        = 19;  // Notas
+    private const int C_TAGS         = 20;  // Etiquetas
+
     public async Task<ImportResult> ImportItemsFromExcelAsync(Stream fileStream)
     {
-        var errors = new List<ImportError>();
-        var itemsToInsert = new List<(Item Item, string LotName, string? LotNotes, List<string> Tags)>();
+        var errors        = new List<ImportError>();
+        var itemsToInsert = new List<(Item Item, string LotCode, string LotName, string? LotNotes, List<string> Tags)>();
 
         using var wb = new XLWorkbook(fileStream);
 
@@ -57,21 +79,12 @@ public class ImportService
 
             var row = ws.Row(rowNum);
 
-            // Leer string de una celda
             string Get(int col) => row.Cell(col).GetString().Trim();
 
-            // Leer decimal directamente del valor numérico de la celda (evita problemas de locale)
             bool GetDecimal(int col, out decimal value)
             {
                 var cell = row.Cell(col);
-                // Intentar obtener el valor numérico nativo de la celda
-                try
-                {
-                    value = (decimal)cell.Value.GetNumber();
-                    return true;
-                }
-                catch { }
-                // Fallback: parsear el string intentando ambas culturas
+                try { value = (decimal)cell.Value.GetNumber(); return true; } catch { }
                 var s = cell.GetString().Trim();
                 if (decimal.TryParse(s, System.Globalization.NumberStyles.Any,
                         System.Globalization.CultureInfo.InvariantCulture, out value)) return true;
@@ -81,7 +94,7 @@ public class ImportService
             }
 
             // ── Col 3: Nombre (obligatorio) ──
-            var name = Get(3);
+            var name = Get(C_NAME);
             if (string.IsNullOrWhiteSpace(name))
             {
                 errors.Add(new(rowNum, "Nombre", name, "El nombre es obligatorio."));
@@ -89,37 +102,37 @@ public class ImportService
             }
 
             // ── Col 2: Tipo ──
-            var typeStr = Get(2);
+            var typeStr = Get(C_TYPE);
             if (!Enum.TryParse<ItemType>(typeStr, true, out var itemType))
                 errors.Add(new(rowNum, "Tipo", typeStr,
                     "Valor no válido. Debe ser: Console, VideoGame o Accessory."));
 
             // ── Col 5: Condicion ──
-            var condStr = Get(5);
+            var condStr = Get(C_CONDITION);
             if (!Enum.TryParse<ItemCondition>(condStr, true, out var itemCondition))
                 errors.Add(new(rowNum, "Condicion", condStr,
                     "Valor no válido. Debe ser: New, Used o NeedsRepair."));
 
-            // ── Col 9: Precio Compra ──
-            if (!GetDecimal(9, out var purchasePrice) || purchasePrice < 0)
-                errors.Add(new(rowNum, "Precio Compra", Get(9),
+            // ── Col 10: Precio Compra ──
+            if (!GetDecimal(C_PRICE, out var purchasePrice) || purchasePrice < 0)
+                errors.Add(new(rowNum, "Precio Compra", Get(C_PRICE),
                     "Debe ser un número decimal mayor o igual a 0."));
 
-            // ── Col 10: Envio ──
-            if (!GetDecimal(10, out var shippingCost) || shippingCost < 0)
-                errors.Add(new(rowNum, "Envio", Get(10),
+            // ── Col 11: Envio ──
+            if (!GetDecimal(C_SHIPPING, out var shippingCost) || shippingCost < 0)
+                errors.Add(new(rowNum, "Envio", Get(C_SHIPPING),
                     "Debe ser un número decimal mayor o igual a 0."));
 
-            // ── Col 12: Fecha Compra ──
-            if (!TryParseDate(row.Cell(12), out var purchaseDate))
-                errors.Add(new(rowNum, "Fecha Compra", Get(12),
+            // ── Col 13: Fecha Compra ──
+            if (!TryParseDate(row.Cell(C_PURCHASE_DATE), out var purchaseDate))
+                errors.Add(new(rowNum, "Fecha Compra", Get(C_PURCHASE_DATE),
                     "Formato de fecha no válido. Use dd/MM/yyyy."));
             else if (purchaseDate > DateTime.UtcNow.AddDays(1))
-                errors.Add(new(rowNum, "Fecha Compra", Get(12),
+                errors.Add(new(rowNum, "Fecha Compra", Get(C_PURCHASE_DATE),
                     "La fecha de compra no puede ser futura."));
 
-            // ── Col 13: Vendido ──
-            var soldStr = Get(13);
+            // ── Col 14: Vendido ──
+            var soldStr = Get(C_SOLD);
             bool isSold = soldStr.Equals("Si", StringComparison.OrdinalIgnoreCase)
                        || soldStr.Equals("Sí", StringComparison.OrdinalIgnoreCase)
                        || soldStr == "1";
@@ -129,33 +142,33 @@ public class ImportService
                 errors.Add(new(rowNum, "Vendido", soldStr,
                     "Valor no válido. Debe ser 'Si' o 'No'."));
 
-            // ── Col 14: Precio Venta (obligatorio si Vendido = Si) ──
+            // ── Col 15: Precio Venta (obligatorio si Vendido = Si) ──
             decimal? salePrice = null;
             if (isSold)
             {
-                if (!GetDecimal(14, out var sp) || sp <= 0)
-                    errors.Add(new(rowNum, "Precio Venta", Get(14),
+                if (!GetDecimal(C_SALE_PRICE, out var sp) || sp <= 0)
+                    errors.Add(new(rowNum, "Precio Venta", Get(C_SALE_PRICE),
                         "Si el artículo está vendido, el precio de venta debe ser mayor que 0."));
                 else
                     salePrice = sp;
             }
 
-            // ── Col 15: Fecha Venta (obligatoria si Vendido = Si) ──
+            // ── Col 16: Fecha Venta (obligatoria si Vendido = Si) ──
             DateTime? saleDate = null;
             if (isSold)
             {
-                if (!TryParseDate(row.Cell(15), out var sd))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(15),
+                if (!TryParseDate(row.Cell(C_SALE_DATE), out var sd))
+                    errors.Add(new(rowNum, "Fecha Venta", Get(C_SALE_DATE),
                         "Si el artículo está vendido, la fecha de venta debe ser válida (dd/MM/yyyy)."));
                 else if (sd > DateTime.UtcNow.AddDays(1))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(15),
+                    errors.Add(new(rowNum, "Fecha Venta", Get(C_SALE_DATE),
                         "La fecha de venta no puede ser futura."));
                 else
                     saleDate = sd;
             }
 
-            // ── Col 17: Coleccion ──
-            var collectionStr = Get(17);
+            // ── Col 18: Coleccion ──
+            var collectionStr = Get(C_COLLECTION);
             bool isCollection = collectionStr.Equals("Si", StringComparison.OrdinalIgnoreCase)
                              || collectionStr.Equals("Sí", StringComparison.OrdinalIgnoreCase)
                              || collectionStr == "1";
@@ -166,10 +179,20 @@ public class ImportService
                 errors.Add(new(rowNum, "Coleccion", collectionStr,
                     "Valor no válido. Debe ser 'Si' o 'No'."));
 
+            // ── Validación cruzada: no puede estar vendido Y en colección ──
+            if (isSold && isCollection)
+                errors.Add(new(rowNum, "Estado", $"Vendido={soldStr} / Coleccion={collectionStr}",
+                    "Un artículo no puede estar vendido y en colección al mismo tiempo."));
+
             if (errors.Any(e => e.Row == rowNum)) continue;
 
-            // ── Col 19: Etiquetas (opcional, separadas por coma) ──
-            var tagsRaw = Get(19);
+            // ── Col 7: Código Lote (opcional) ──
+            var lotCode  = Get(C_LOT_CODE).NullIfEmpty();
+            var lotName  = Get(C_LOT_NAME).NullIfEmpty();
+            var lotNotes = Get(C_LOT_NOTES).NullIfEmpty();
+
+            // ── Col 20: Etiquetas (opcional, separadas por coma) ──
+            var tagsRaw  = Get(C_TAGS);
             var tagNames = string.IsNullOrWhiteSpace(tagsRaw)
                 ? new List<string>()
                 : tagsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -178,14 +201,11 @@ public class ImportService
                          .Distinct()
                          .ToList();
 
-            // ── Col 8: Notas Lote (se usa al crear/actualizar el lote) ──
-            var lotNotes = Get(8).NullIfEmpty();
-
             itemsToInsert.Add((new Item
             {
                 Type          = itemType,
                 Name          = name,
-                Platform      = Get(4).NullIfEmpty(),
+                Platform      = Get(C_PLATFORM).NullIfEmpty(),
                 Condition     = itemCondition,
                 PurchasePrice = purchasePrice,
                 ShippingCost  = shippingCost,
@@ -194,8 +214,8 @@ public class ImportService
                 SalePrice     = salePrice,
                 SaleDate      = saleDate,
                 IsCollection  = isCollection,
-                Notes         = Get(18).NullIfEmpty()
-            }, Get(7), lotNotes, tagNames));
+                Notes         = Get(C_NOTES).NullIfEmpty()
+            }, lotCode ?? "", lotName ?? "", lotNotes, tagNames));
         }
 
         if (errors.Any())
@@ -207,71 +227,94 @@ public class ImportService
                 new(0, "", "", "El archivo no contiene filas de datos para importar.")
             });
 
-        // ── Crear lotes que no existan y asignar LotId ──
-        var existingLots = await _db.Lots.ToListAsync();
-        var lotMap = existingLots.ToDictionary(l => l.Name, l => l, StringComparer.OrdinalIgnoreCase);
+        // ── Resolver lotes ────────────────────────────────────────────────
+        // Prioridad: Código Lote > Nombre Lote > sin lote
+        var existingLots     = await _db.Lots.ToListAsync();
+        var lotByCode        = existingLots.ToDictionary(l => l.Code, l => l, StringComparer.OrdinalIgnoreCase);
+        var lotByName        = existingLots.ToDictionary(l => l.Name, l => l, StringComparer.OrdinalIgnoreCase);
 
-        var newLotNames = itemsToInsert
-            .Select(t => t.LotName)
-            .Where(n => !string.IsNullOrWhiteSpace(n) && n != "Sin lote" && !lotMap.ContainsKey(n))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        // Calcular cuántos lotes existen para el siguiente número de código
+        int nextLotNumber = existingLots
+            .Select(l => { int n; return int.TryParse(l.Code.Replace("LOT-", ""), out n) ? n : 0; })
+            .Where(n => n > 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
 
-        foreach (var (_, lotName, lotNotes, _) in itemsToInsert)
+        // Mapa definitivo: clave = (lotCode|lotName) → Lot
+        var resolvedLots = new Dictionary<string, Lot>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (item, lotCode, lotName, lotNotes, _) in itemsToInsert)
         {
-            if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
-                && lotNotes != null && lotMap.TryGetValue(lotName, out var existingLot)
-                && string.IsNullOrWhiteSpace(existingLot.Notes))
-                existingLot.Notes = lotNotes;
-        }
+            if (string.IsNullOrWhiteSpace(lotCode) && string.IsNullOrWhiteSpace(lotName))
+                continue; // sin lote
 
-        foreach (var lotName in newLotNames)
-        {
-            var firstEntry = itemsToInsert.First(t => t.LotName.Equals(lotName, StringComparison.OrdinalIgnoreCase));
+            // Clave de resolución: preferimos el código
+            var key = !string.IsNullOrWhiteSpace(lotCode) ? lotCode : lotName;
+
+            if (resolvedLots.ContainsKey(key)) continue; // ya procesado
+
+            // 1. Buscar por código exacto
+            if (!string.IsNullOrWhiteSpace(lotCode) && lotByCode.TryGetValue(lotCode, out var foundByCode))
+            {
+                resolvedLots[key] = foundByCode;
+                continue;
+            }
+
+            // 2. Buscar por nombre si no hay código
+            if (!string.IsNullOrWhiteSpace(lotName) && lotByName.TryGetValue(lotName, out var foundByName))
+            {
+                resolvedLots[key] = foundByName;
+                continue;
+            }
+
+            // 3. Crear lote nuevo
+            var newCode = !string.IsNullOrWhiteSpace(lotCode)
+                ? lotCode
+                : $"LOT-{nextLotNumber++:D3}";
+
             var newLot = new Lot
             {
-                Name               = lotName,
-                PurchaseDate       = firstEntry.Item.PurchaseDate,
-                Notes              = firstEntry.LotNotes,
+                Code               = newCode,
+                Name               = !string.IsNullOrWhiteSpace(lotName) ? lotName : newCode,
+                Notes              = lotNotes,
+                PurchaseDate       = item.PurchaseDate,
                 TotalPurchasePrice = 0,
                 TotalShippingCost  = 0
             };
             _db.Lots.Add(newLot);
             await _db.SaveChangesAsync();
-            lotMap[lotName] = newLot;
+            lotByCode[newCode]      = newLot;
+            if (!string.IsNullOrWhiteSpace(lotName)) lotByName[lotName] = newLot;
+            resolvedLots[key]       = newLot;
         }
 
-        foreach (var (item, lotName, _, _) in itemsToInsert)
+        // Asignar LotId a cada artículo
+        foreach (var (item, lotCode, lotName, _, _) in itemsToInsert)
         {
-            if (!string.IsNullOrWhiteSpace(lotName) && lotName != "Sin lote"
-                && lotMap.TryGetValue(lotName, out var lot))
+            var key = !string.IsNullOrWhiteSpace(lotCode) ? lotCode : lotName;
+            if (!string.IsNullOrWhiteSpace(key) && resolvedLots.TryGetValue(key, out var lot))
                 item.LotId = lot.Id;
         }
 
         _db.Items.AddRange(itemsToInsert.Select(t => t.Item));
         await _db.SaveChangesAsync();
 
-        // ── Asignar etiquetas sin duplicados ──
-        // Cargar todos los tags existentes en memoria una sola vez
+        // ── Asignar etiquetas sin duplicados ─────────────────────────────
         var existingTags = await _db.Tags.ToListAsync();
-        var tagMap = existingTags.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
+        var tagMap       = existingTags.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (item, _, _, tagNames) in itemsToInsert)
+        foreach (var (item, _, _, _, tagNames) in itemsToInsert)
         {
             if (tagNames.Count == 0) continue;
-
             foreach (var tagName in tagNames)
             {
-                // Buscar o crear el tag (sin duplicados)
                 if (!tagMap.TryGetValue(tagName, out var tag))
                 {
                     tag = new Tag { Name = tagName };
                     _db.Tags.Add(tag);
-                    await _db.SaveChangesAsync(); // necesitamos el Id
+                    await _db.SaveChangesAsync();
                     tagMap[tagName] = tag;
                 }
-
-                // Vincular solo si no existe ya la relación
                 bool alreadyLinked = await _db.ItemTags
                     .AnyAsync(it => it.ItemId == item.Id && it.TagId == tag.Id);
                 if (!alreadyLinked)
@@ -286,10 +329,8 @@ public class ImportService
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
-    /// Lee una fecha de una celda intentando primero su valor nativo y luego string
     private static bool TryParseDate(IXLCell cell, out DateTime result)
     {
-        // Valor nativo de Excel (DateTime)
         try
         {
             if (cell.Value.IsDateTime)
@@ -312,7 +353,6 @@ public class ImportService
                 System.Globalization.DateTimeStyles.None, out result))
             return true;
 
-        // Serial numérico de Excel
         if (double.TryParse(s, out var serial) && serial > 0)
         {
             try { result = DateTime.FromOADate(serial); return true; }

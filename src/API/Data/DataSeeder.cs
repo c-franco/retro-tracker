@@ -1,4 +1,4 @@
-﻿using RetroGameTracker.Data;
+using RetroGameTracker.Data;
 using RetroGameTracker.Models;
 
 namespace RetroGameTracker.Data;
@@ -15,6 +15,7 @@ public static class DataSeeder
         // ─────────────────────────────────────────────────────────
         var lot1 = new Lot
         {
+            Code = "LOT-001",
             Name = "Lote 3DS XL Pikachu",
             Notes = "Wallapop",
             PurchaseDate = new DateTime(2026, 3, 4),
@@ -125,6 +126,7 @@ public static class DataSeeder
         // ─────────────────────────────────────────────────────────
         var lot2 = new Lot
         {
+            Code = "LOT-002",
             Name = "Lote DSi + 2 juegos",
             Notes = "Wallapop",
             PurchaseDate = new DateTime(2026, 3, 2),
@@ -183,6 +185,7 @@ public static class DataSeeder
         // ─────────────────────────────────────────────────────────
         var lot3 = new Lot
         {
+            Code = "LOT-003",
             Name = "Lote Nintendo 3DS XL",
             Notes = "Wallapop + Aliexpress",
             PurchaseDate = new DateTime(2026, 2, 24),
@@ -254,6 +257,7 @@ public static class DataSeeder
         // ─────────────────────────────────────────────────────────
         var lot4 = new Lot
         {
+            Code = "LOT-004",
             Name = "Lote DS Lite + juego",
             Notes = "Mercadillo",
             PurchaseDate = new DateTime(2026, 2, 22),
@@ -299,6 +303,7 @@ public static class DataSeeder
         // ─────────────────────────────────────────────────────────
         var lot5 = new Lot
         {
+            Code = "LOT-005",
             Name = "Lote juegos DS",
             Notes = "Juegos DS",
             PurchaseDate = new DateTime(2026, 1, 1),

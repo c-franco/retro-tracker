@@ -20,6 +20,7 @@ public class ItemService
         item.Condition.ToString(),
         item.LotId,
         item.Lot?.Name,
+        item.Lot?.Code,
         item.PurchasePrice,
         item.ShippingCost,
         item.TotalCost,
@@ -139,6 +140,8 @@ public class ItemService
         if (req.PurchaseDate.HasValue) item.PurchaseDate = req.PurchaseDate.Value;
         if (req.Notes != null) item.Notes = req.Notes;
         if (req.IsCollection.HasValue) item.IsCollection = req.IsCollection.Value;
+        if (req.UnlinkLot) item.LotId = null;
+        else if (req.LotId.HasValue) item.LotId = req.LotId.Value;
 
         if (req.Tags != null)
             await SyncTagsAsync(item, req.Tags);

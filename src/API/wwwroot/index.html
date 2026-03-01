@@ -184,13 +184,42 @@
         <h1>Lotes de Compra</h1>
         <button class="btn-primary" onclick="App.openLotModal()">+ Nuevo Lote</button>
       </div>
-      <div id="lots-grid" class="lots-grid"></div>
+      <div class="filters-bar" style="margin-bottom:1rem">
+        <input type="search" id="lots-search" placeholder="🔍 Buscar por código o nombre..."
+               oninput="App.loadLots()" style="min-width:220px;flex:1" />
+        <select id="lots-period" onchange="App.loadLots()">
+          <option value="">Todo</option>
+          <option value="week">Esta semana</option>
+          <option value="month">Este mes</option>
+          <option value="3months">Últimos 3 meses</option>
+          <option value="6months">Últimos 6 meses</option>
+          <option value="year">Este año</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="lots-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Fecha</th>
+              <th>Nombre</th>
+              <th>Notas</th>
+              <th>Artículos</th>
+              <th>Invertido</th>
+              <th>Recuperado</th>
+              <th>Beneficio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ──── REGISTRO RÁPIDO ──── -->
     <section id="view-quick-add" class="view">
       <div class="view-header">
-        <h1>⚡ Registro Rápido</h1>
+        <h1>Registro Rápido</h1>
         <p class="subtitle"></p>
       </div>
 
@@ -262,7 +291,7 @@
 
     <!-- ──── AJUSTES ──── -->
     <section id="view-settings" class="view">
-      <div class="view-header"><h1>⚙️ Ajustes</h1></div>
+      <div class="view-header"><h1>Ajustes</h1></div>
 
       <div class="settings-grid">
         <!-- Columna izquierda -->
@@ -465,6 +494,32 @@
       <div class="modal-footer">
         <button class="btn-secondary" onclick="App.closeModal('modal-add-to-lot')">Cancelar</button>
         <button class="btn-primary" onclick="App.saveAddToLot()">✅ Añadir al Lote</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──── MODAL: DETALLE DE LOTE ──── -->
+  <div class="modal-overlay" id="modal-lot-detail" onclick="App.closeModal('modal-lot-detail')">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.7rem;margin-bottom:0.3rem">
+            <span id="lot-detail-code" class="badge badge-lot-code"></span>
+            <h2 id="lot-detail-name" style="font-size:1.05rem"></h2>
+          </div>
+          <div id="lot-detail-meta" style="font-size:0.78rem;color:var(--text2);display:flex;gap:1.2rem;flex-wrap:wrap"></div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
+          <button class="btn-sm" id="lot-detail-add-btn" onclick="App.openAddToLotFromDetail()">+ Artículo</button>
+          <button class="btn-sm" id="lot-detail-edit-btn" onclick="App.openEditLotFromDetail()">✏️ Editar</button>
+          <button class="modal-close" onclick="App.closeModal('modal-lot-detail')">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <!-- Stats del lote -->
+        <div class="lot-detail-stats" id="lot-detail-stats"></div>
+        <!-- Listado de artículos -->
+        <div id="lot-detail-items" style="margin-top:1rem;display:flex;flex-direction:column;gap:0.35rem"></div>
       </div>
     </div>
   </div>

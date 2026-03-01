@@ -10,6 +10,7 @@ public record ItemDto(
     string Condition,
     int? LotId,
     string? LotName,
+    string? LotCode,
     decimal PurchasePrice,
     decimal ShippingCost,
     decimal TotalCost,
@@ -20,7 +21,7 @@ public record ItemDto(
     decimal? Profit,
     string? Notes,
     bool IsCollection,
-    List<string> Tags          // ← nuevo
+    List<string> Tags
 );
 
 public record CreateItemRequest(
@@ -47,7 +48,9 @@ public record UpdateItemRequest(
     DateTime? PurchaseDate,
     string? Notes,
     bool? IsCollection,
-    List<string>? Tags = null  // ← nuevo
+    int? LotId = null,
+    bool UnlinkLot = false,
+    List<string>? Tags = null
 );
 
 public record SellItemRequest(
@@ -67,6 +70,7 @@ public record TagDto(
 
 public record LotDto(
     int Id,
+    string Code,
     string Name,
     string? Notes,
     DateTime PurchaseDate,

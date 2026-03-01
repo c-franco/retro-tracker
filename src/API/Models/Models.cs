@@ -6,6 +6,8 @@ namespace RetroGameTracker.Models;
 public class Lot
 {
     public int Id { get; set; }
+    /// <summary>Código único autogenerado: LOT-001, LOT-002…</summary>
+    public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;

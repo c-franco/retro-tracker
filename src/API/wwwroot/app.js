@@ -532,7 +532,9 @@ const App = {
         <td class="inv-col-tipo">${typeBadge(item.type)}</td>
         <td class="inv-col-plataforma"><span class="badge">${item.platform || '—'}</span></td>
         <td class="inv-col-estado">${condBadge(item.condition)}</td>
-        <td class="inv-col-lote">${item.lotName ? `<span class="badge">${escapeHtml(item.lotName)}</span>` : '<span style="color:#555">—</span>'}</td>
+        <td class="inv-col-lote">${item.lotId
+          ? `<span class="badge badge-lot-code" style="cursor:pointer" onclick="App.openLotDetail(${item.lotId})" title="Ver lote ${escapeHtml(item.lotCode||'')}">${escapeHtml(item.lotCode || item.lotName || '—')}</span>`
+          : '<span style="color:#555">—</span>'}</td>
         <td class="inv-col-etiquetas">
           <div class="tags-cell">
             ${(item.tags || []).map(tagPillReadonly).join('') || '<span style="color:var(--text3)">—</span>'}
@@ -548,7 +550,10 @@ const App = {
               ? `<button class="btn-icon" title="Vender" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
               : item.isSold ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>` : ''
             }
-            <button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id},${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>
+            ${!item.isSold
+              ? `<button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id},${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>`
+              : ''
+            }
             <button class="btn-icon" title="Editar"   onclick="App.openItemModal(${item.id})">✏️</button>
             <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>
@@ -686,9 +691,16 @@ const App = {
       await App.post(`/items/${id}/sell`, { salePrice: parseFloat(priceEl.value), saleDate: dateEl.value });
       App.toast('Venta registrada 💰');
       App.closeModal('modal-sell');
-      App.loadInventory();
-      App.loadDashboard();
-      App.loadLots();
+
+      // Callback opcional desde el popup de detalle de lote
+      if (App._sellCallback) {
+        await App._sellCallback();
+        App._sellCallback = null;
+      } else {
+        App.loadInventory();
+        App.loadDashboard();
+        App.loadLots();
+      }
     } catch (e) {
       App.toast('Error registrando venta', 'error');
     }
@@ -744,47 +756,235 @@ const App = {
 
   async loadLots() {
     try {
-      const lots = await App.get('/lots');
-      const grid = document.getElementById('lots-grid');
+      const allLots = await App.get('/lots');
+      const search  = (document.getElementById('lots-search')?.value || '').trim().toLowerCase();
+      const period  = document.getElementById('lots-period')?.value || '';
+
+      // Calcular fecha mínima según período
+      let minDate = null;
+      if (period) {
+        const now = new Date();
+        if (period === 'week') {
+          minDate = new Date(now); minDate.setDate(now.getDate() - 7);
+        } else if (period === 'month') {
+          minDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else if (period === '3months') {
+          minDate = new Date(now); minDate.setMonth(now.getMonth() - 3);
+        } else if (period === '6months') {
+          minDate = new Date(now); minDate.setMonth(now.getMonth() - 6);
+        } else if (period === 'year') {
+          minDate = new Date(now.getFullYear(), 0, 1);
+        }
+      }
+
+      const lots = allLots.filter(lot => {
+        if (search) {
+          const matchCode = lot.code.toLowerCase().includes(search);
+          const matchName = lot.name.toLowerCase().includes(search);
+          if (!matchCode && !matchName) return false;
+        }
+        if (minDate) {
+          if (new Date(lot.purchaseDate) < minDate) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.querySelector('#lots-table tbody');
+
       if (!lots.length) {
-        grid.innerHTML = '<p style="color:#555">No hay lotes. ¡Crea el primero!</p>';
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">${allLots.length ? 'Sin lotes para los filtros seleccionados' : 'No hay lotes. ¡Crea el primero!'}</td></tr>`;
         return;
       }
-      grid.innerHTML = lots.map(lot => {
+
+      tbody.innerHTML = lots.map(lot => {
         const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
-        return `<div class="lot-card">
-          <div class="lot-card-header">
-            <div class="lot-card-title">🎁 ${escapeHtml(lot.name)}</div>
-            <div class="lot-card-actions">
-              <button class="btn-sm" onclick="App.openAddToLotModal(${lot.id},'${escapeHtml(lot.name)}')">+ Artículo</button>
-              <button class="btn-icon" onclick="App.openEditLotModal(${lot.id},'${escapeHtml(lot.name)}','${lot.purchaseDate.split('T')[0]}','${escapeHtml(lot.notes||'')}')">✏️</button>
-              <button class="btn-icon" onclick="App.deleteLot(${lot.id})">🗑️</button>
+        const pct = lot.totalItems > 0 ? Math.round(lot.soldItems / lot.totalItems * 100) : 0;
+        return `<tr>
+          <td><span class="badge badge-lot-code">${escapeHtml(lot.code)}</span></td>
+          <td class="neutral" style="font-size:0.78rem;white-space:nowrap">${fmtDate(lot.purchaseDate)}</td>
+          <td style="font-weight:600">${escapeHtml(lot.name)}</td>
+          <td class="neutral" style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${lot.notes ? escapeHtml(lot.notes) : '<span style="color:#555">—</span>'}</td>
+          <td>
+            <div class="lots-progress">
+              <span>${lot.totalItems}</span>
+              <div class="lots-progress-bar"><div class="lots-progress-fill" style="width:${pct}%"></div></div>
+              <span style="font-size:0.72rem;color:var(--text3)">${lot.soldItems} vend.</span>
             </div>
-          </div>
-          <div class="lot-card-meta">${fmtDate(lot.purchaseDate)}${lot.notes ? ` — ${escapeHtml(lot.notes)}` : ''}</div>
-          <div class="lot-card-stats">
-            <div class="lot-stat"><div class="lot-stat-value">${fmt(lot.totalCost)}</div><div class="lot-stat-label">Invertido</div></div>
-            <div class="lot-stat"><div class="lot-stat-value">${fmt(lot.totalRevenue)}</div><div class="lot-stat-label">Recuperado</div></div>
-            <div class="lot-stat"><div class="lot-stat-value ${profitCls}">${fmt(lot.totalProfit)}</div><div class="lot-stat-label">Beneficio</div></div>
-          </div>
-          <div class="lot-items-preview">
-            ${lot.items.map(item => `
-              <div class="lot-item-row ${item.isSold ? 'sold' : ''}">
-                <span>${typeBadge(item.type)} ${escapeHtml(item.name)}</span>
-                <span style="display:flex;gap:6px;align-items:center">
-                  <span class="neutral">${fmt(item.totalCost)}</span>
-                  ${item.isSold
-                    ? `<span class="positive">${fmt(item.salePrice)}</span>`
-                    : `<button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
-                  }
-                </span>
-              </div>`).join('')}
-          </div>
-        </div>`;
+          </td>
+          <td class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(lot.totalCost)}</td>
+          <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent3)">${fmt(lot.totalRevenue)}</td>
+          <td class="${profitCls}" style="font-family:var(--font-mono);font-size:0.82rem">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</td>
+          <td>
+            <div style="display:flex;gap:3px;align-items:center">
+              <button class="btn-sm" onclick="App.openLotDetail(${lot.id})">Ver detalle</button>
+              <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
       }).join('');
+
+      // Footer eliminado
     } catch (e) {
       App.toast('Error cargando lotes', 'error');
     }
+  },
+
+  // ── Popup de detalle de lote ─────────────
+
+  _currentLotId: null,
+
+  async openLotDetail(lotId) {
+    App._currentLotId = lotId;
+    try {
+      const lot = await App.get(`/lots/${lotId}`);
+      App._renderLotDetail(lot);
+      App.openModal('modal-lot-detail');
+    } catch (e) {
+      App.toast('Error cargando detalle del lote', 'error');
+    }
+  },
+
+  _renderLotDetail(lot) {
+    // Cabecera
+    document.getElementById('lot-detail-code').textContent = lot.code;
+    document.getElementById('lot-detail-name').textContent = lot.name;
+    document.getElementById('lot-detail-add-btn').dataset.lotId   = lot.id;
+    document.getElementById('lot-detail-edit-btn').dataset.lotId  = lot.id;
+
+    const meta = document.getElementById('lot-detail-meta');
+    meta.innerHTML = `
+      <span>📅 ${fmtDate(lot.purchaseDate)}</span>
+      ${lot.notes ? `<span>📝 ${escapeHtml(lot.notes)}</span>` : ''}
+    `;
+
+    // Stats
+    const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
+    document.getElementById('lot-detail-stats').innerHTML = `
+      <div class="lot-detail-stat-grid">
+        <div class="lot-detail-stat">
+          <span class="lot-detail-stat-val neutral">${fmt(lot.totalCost)}</span>
+          <span class="lot-detail-stat-lbl">Invertido</span>
+        </div>
+        <div class="lot-detail-stat">
+          <span class="lot-detail-stat-val" style="color:var(--accent3)">${fmt(lot.totalRevenue)}</span>
+          <span class="lot-detail-stat-lbl">Recuperado</span>
+        </div>
+        <div class="lot-detail-stat">
+          <span class="lot-detail-stat-val ${profitCls}">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</span>
+          <span class="lot-detail-stat-lbl">Beneficio</span>
+        </div>
+        <div class="lot-detail-stat">
+          <span class="lot-detail-stat-val">${lot.soldItems} / ${lot.totalItems}</span>
+          <span class="lot-detail-stat-lbl">Vendidos</span>
+        </div>
+        <div class="lot-detail-stat">
+          <span class="lot-detail-stat-val">${lot.stockItems}</span>
+          <span class="lot-detail-stat-lbl">En stock</span>
+        </div>
+      </div>`;
+
+    // Listado de artículos
+    const container = document.getElementById('lot-detail-items');
+    if (!lot.items.length) {
+      container.innerHTML = '<p style="color:#555;font-size:0.85rem;padding:0.5rem">Sin artículos en este lote.</p>';
+      return;
+    }
+    container.innerHTML = lot.items.map(item => {
+      const rowClass = item.isSold ? 'sold' : item.isCollection ? 'lot-item-collection' : '';
+
+      let actions = '';
+      if (item.isSold) {
+        actions = `<button class="btn-icon" title="Deshacer venta" onclick="App.unsellFromDetail(${item.id})">↩️</button>`;
+      } else if (item.isCollection) {
+        actions = `<button class="btn-icon" title="Mover a stock" onclick="App.toggleCollectionFromDetail(${item.id}, true)">📦</button>`;
+      } else {
+        actions = `<button class="btn-icon" title="Vender" onclick="App.openSellModalFromDetail(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`;
+      }
+
+      const collectionBadge = item.isCollection && !item.isSold
+        ? `<span style="font-size:0.7rem;color:var(--accent3);margin-right:2px">⭐</span>` : '';
+
+      return `<div class="lot-item-row ${rowClass}">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${collectionBadge}${typeBadge(item.type)} <strong>${escapeHtml(item.name)}</strong>
+        </span>
+        <span style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+          <span class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(item.totalCost)}</span>
+          ${item.isSold ? `<span class="positive" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(item.salePrice)}</span>` : ''}
+          ${actions}
+          <button class="btn-icon" title="Quitar del lote" onclick="App.removeItemFromLot(${item.id})">🗑️</button>
+        </span>
+      </div>`;
+    }).join('');
+  },
+
+  // Acciones desde el popup de detalle
+  openSellModalFromDetail(itemId, name, cost) {
+    App.openSellModal(itemId, name, cost);
+    // Al confirmar la venta refrescamos el detalle
+    App._sellCallback = async () => {
+      const lot = await App.get(`/lots/${App._currentLotId}`);
+      App._renderLotDetail(lot);
+      App.loadLots();
+    };
+  },
+
+  async unsellFromDetail(itemId) {
+    if (!confirm('¿Deshacer la venta de este artículo?')) return;
+    try {
+      await App.post(`/items/${itemId}/unsell`, {});
+      App.toast('Venta deshecha ↩️');
+      const lot = await App.get(`/lots/${App._currentLotId}`);
+      App._renderLotDetail(lot);
+      App.loadLots();
+    } catch (e) {
+      App.toast('Error deshaciendo venta', 'error');
+    }
+  },
+
+  async toggleCollectionFromDetail(itemId, currentIsCollection) {
+    try {
+      await App.put(`/items/${itemId}`, { isCollection: !currentIsCollection });
+      App.toast(!currentIsCollection ? '⭐ Movido a colección' : '📦 Movido a stock');
+      const lot = await App.get(`/lots/${App._currentLotId}`);
+      App._renderLotDetail(lot);
+    } catch (e) {
+      App.toast('Error actualizando artículo', 'error');
+    }
+  },
+
+  async removeItemFromLot(itemId) {
+    const ok = await App.confirmDialog.show({
+      message: '¿Quitar este artículo del lote?',
+      submessage: 'El artículo permanecerá en el inventario sin lote asignado.',
+      icon: '🗑️',
+      okLabel: 'Quitar del lote',
+      okClass: 'btn-danger'
+    });
+    if (!ok) return;
+    try {
+      await App.put(`/items/${itemId}`, { unlinkLot: true });
+      App.toast('Artículo desvinculado del lote');
+      const lot = await App.get(`/lots/${App._currentLotId}`);
+      App._renderLotDetail(lot);
+      App.loadLots();
+    } catch (e) {
+      App.toast('Error al quitar el artículo', 'error');
+    }
+  },
+
+  openEditLotFromDetail() {
+    const lotId = App._currentLotId;
+    App.get(`/lots/${lotId}`).then(lot => {
+      App.openEditLotModal(lot.id, lot.name, lot.purchaseDate.split('T')[0], lot.notes || '');
+    });
+  },
+
+  openAddToLotFromDetail() {
+    const lotId = App._currentLotId;
+    App.get(`/lots/${lotId}`).then(lot => {
+      App.openAddToLotModal(lot.id, lot.name);
+    });
   },
 
   // ── Modal Lote ───────────────────────────
@@ -956,6 +1156,11 @@ const App = {
       App.toast('Lote actualizado ✅');
       App.closeModal('modal-edit-lot');
       App.loadLots();
+      // Si el popup de detalle estaba abierto, refrescarlo
+      if (App._currentLotId == id) {
+        const lot = await App.get(`/lots/${id}`);
+        App._renderLotDetail(lot);
+      }
     } catch (e) {
       App.toast('Error actualizando lote', 'error');
     }
@@ -1050,6 +1255,11 @@ const App = {
       App.toast(`✅ ${items.length} artículo(s) añadido(s) al lote`);
       App.closeModal('modal-add-to-lot');
       App.loadLots();
+      // Refrescar popup de detalle si está abierto para este lote
+      if (App._currentLotId == lotId) {
+        const lot = await App.get(`/lots/${lotId}`);
+        App._renderLotDetail(lot);
+      }
     } catch (e) {
       App.toast('Error añadiendo artículos', 'error');
     }
