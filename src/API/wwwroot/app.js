@@ -347,12 +347,15 @@ const App = {
   },
 
   renderMonthlyChart(stats) {
-    const ctx = document.getElementById('chartMonthly').getContext('2d');
-    if (chartMonthly) chartMonthly.destroy();
+    const canvas = document.getElementById('chartMonthly');
+    // Destruir cualquier instancia previa (incluso si la variable se perdió)
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+    chartMonthly = null;
 
     const isMobile = window.innerWidth < 768;
 
-    chartMonthly = new Chart(ctx, {
+    chartMonthly = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
         labels: stats.map(s => isMobile
@@ -421,14 +424,16 @@ const App = {
     let fi = 0;
     const colors = stats.map(s => platformColors[s.platform] || fallback[fi++ % fallback.length]);
 
-    const canvas     = document.getElementById('chartPlatform');
-    const listEl     = document.getElementById('platformList');
+    const canvas = document.getElementById('chartPlatform');
+    const listEl  = document.getElementById('platformList');
+    // Destruir cualquier instancia previa de forma segura
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+    chartPlatform = null;
 
     if (isMobile) {
-      // Ocultar canvas, mostrar lista
       canvas.style.display = 'none';
       listEl.style.display = 'block';
-      if (chartPlatform) { chartPlatform.destroy(); chartPlatform = null; }
 
       const total = stats.reduce((sum, s) => sum + s.totalItems, 0);
       // Mostrar top 8 para no saturar
@@ -446,10 +451,8 @@ const App = {
         </div>`;
       }).join('');
     } else {
-      // Mostrar canvas, ocultar lista
       canvas.style.display = 'block';
       listEl.style.display = 'none';
-      if (chartPlatform) { chartPlatform.destroy(); chartPlatform = null; }
 
       chartPlatform = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
