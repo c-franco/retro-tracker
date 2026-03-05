@@ -230,6 +230,15 @@ body {
   margin: 0 auto;
 }
 
+/* En móvil el wrap colapsa — la lista define su propia altura */
+@media (max-width: 767px) {
+  .chart-canvas-wrap--donut {
+    height: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
 /* ── TABLES ── */
 .table-wrap {
   overflow-x: auto;
@@ -771,6 +780,7 @@ select.field-error option {
 .negative { color: var(--red); }
 .neutral  { color: var(--text2); }
 .row-collection { background: rgba(255,214,10,0.04) !important; }
+.row-sold { background: rgba(0,200,81,0.04) !important; }
 
 /* ── TAGS ── */
 
@@ -1086,7 +1096,6 @@ select.field-error option {
   .chart-card   { padding: 1rem; }
   .chart-card h3 { font-size: 0.82rem; margin-bottom: 0.75rem; }
   .chart-canvas-wrap { height: 200px; }
-  .chart-canvas-wrap--donut { height: 200px; max-width: 220px; }
 }
 
 

@@ -569,7 +569,7 @@ const App = {
       const collectionBadge = item.isCollection
         ? '<span class="badge badge-collection">⭐</span>&nbsp;'
         : '';
-      return `<tr class="${item.isCollection ? 'row-collection' : ''}">
+      return `<tr class="${item.isSold ? 'row-sold' : item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td class="inv-col-tipo">${typeBadge(item.type)}</td>
         <td class="inv-col-plataforma"><span class="badge">${item.platform || '—'}</span></td>
