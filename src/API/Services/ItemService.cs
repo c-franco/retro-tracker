@@ -190,10 +190,22 @@ public class ItemService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var item = await _db.Items.FindAsync(id);
+        var item = await _db.Items
+            .Include(i => i.ItemTags)
+            .FirstOrDefaultAsync(i => i.Id == id);
         if (item == null) return false;
+
+        _db.ItemTags.RemoveRange(item.ItemTags);
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();
+
+        // Limpiar tags huérfanos (sin ningún artículo asociado)
+        var orphans = await _db.Tags
+            .Where(t => !t.ItemTags.Any())
+            .ToListAsync();
+        _db.Tags.RemoveRange(orphans);
+        await _db.SaveChangesAsync();
+
         return true;
     }
 
