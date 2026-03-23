@@ -13,11 +13,16 @@ let recentItems = [];
 let _currency = 'EUR';
 
 // ── Paginación inventario ──
-let _invItems = [];       // todos los artículos del filtro actual
-let _invPage  = 1;        // página actual
-// Tamaño de página — se persiste en localStorage
+let _invItems = [];
+let _invPage  = 1;
 const _pageSizeKey = 'retro_inv_page_size';
 let _invPageSize = parseInt(localStorage.getItem(_pageSizeKey)) || 10;
+
+// ── Paginación lotes ──
+let _lotItems = [];
+let _lotPage  = 1;
+const _lotPageSizeKey = 'retro_lot_page_size';
+let _lotPageSize = parseInt(localStorage.getItem(_lotPageSizeKey)) || 10;
 
 // ═══════════════════════════════════════════
 // SISTEMA DE ETIQUETAS
@@ -881,7 +886,6 @@ const App = {
       const search  = (document.getElementById('lots-search')?.value || '').trim().toLowerCase();
       const period  = document.getElementById('lots-period')?.value || '';
 
-      // Calcular fecha mínima según período
       let minDate = null;
       if (period) {
         const now = new Date();
@@ -898,56 +902,130 @@ const App = {
         }
       }
 
-      const lots = allLots.filter(lot => {
+      _lotItems = allLots.filter(lot => {
         if (search) {
           const matchCode = lot.code.toLowerCase().includes(search);
           const matchName = lot.name.toLowerCase().includes(search);
           if (!matchCode && !matchName) return false;
         }
-        if (minDate) {
-          if (new Date(lot.purchaseDate) < minDate) return false;
-        }
+        if (minDate && new Date(lot.purchaseDate) < minDate) return false;
         return true;
       });
 
-      const tbody = document.querySelector('#lots-table tbody');
-
-      if (!lots.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">${allLots.length ? 'Sin lotes para los filtros seleccionados' : 'No hay lotes. ¡Crea el primero!'}</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = lots.map(lot => {
-        const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
-        const pct = lot.totalItems > 0 ? Math.round(lot.soldItems / lot.totalItems * 100) : 0;
-        return `<tr>
-          <td><span class="badge badge-lot-code">${escapeHtml(lot.code)}</span></td>
-          <td class="neutral" style="font-size:0.78rem;white-space:nowrap">${fmtDate(lot.purchaseDate)}</td>
-          <td style="font-weight:600">${escapeHtml(lot.name)}</td>
-          <td class="neutral" style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${lot.notes ? escapeHtml(lot.notes) : '<span style="color:#555">—</span>'}</td>
-          <td>
-            <div class="lots-progress">
-              <span>${lot.totalItems}</span>
-              <div class="lots-progress-bar"><div class="lots-progress-fill" style="width:${pct}%"></div></div>
-              <span style="font-size:0.72rem;color:var(--text3)">${lot.soldItems} vend.</span>
-            </div>
-          </td>
-          <td class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(lot.totalCost)}</td>
-          <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent3)">${fmt(lot.totalRevenue)}</td>
-          <td class="${profitCls}" style="font-family:var(--font-mono);font-size:0.82rem">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</td>
-          <td>
-            <div style="display:flex;gap:3px;align-items:center">
-              <button class="btn-sm" onclick="App.openLotDetail(${lot.id})">Ver detalle</button>
-              <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar">🗑️</button>
-            </div>
-          </td>
-        </tr>`;
-      }).join('');
-
-      // Footer eliminado
+      _lotPage = 1;
+      App.renderLotsPage(allLots.length);
     } catch (e) {
       App.toast('Error cargando lotes', 'error');
     }
+  },
+
+  onLotPageSizeChange() {
+    const sel = document.getElementById('lot-page-size-select');
+    _lotPageSize = parseInt(sel?.value) || 10;
+    localStorage.setItem(_lotPageSizeKey, _lotPageSize);
+    _lotPage = 1;
+    App.renderLotsPage();
+  },
+
+  goToLotPage(page) {
+    _lotPage = page;
+    App.renderLotsPage();
+    document.getElementById('lots-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+
+  renderLotsPage(totalAll) {
+    const total      = _lotItems.length;
+    const totalPages = Math.max(1, Math.ceil(total / _lotPageSize));
+    if (_lotPage > totalPages) _lotPage = totalPages;
+
+    const start = (_lotPage - 1) * _lotPageSize;
+    const page  = _lotItems.slice(start, start + _lotPageSize);
+
+    App.renderLotsTable(page, totalAll);
+    App.renderLotsPaginationBar(total, totalPages);
+  },
+
+  renderLotsTable(lots, totalAll) {
+    const tbody = document.querySelector('#lots-table tbody');
+
+    if (!lots.length) {
+      const msg = (totalAll !== undefined ? totalAll : _lotItems.length) === 0
+        ? 'No hay lotes. ¡Crea el primero!'
+        : 'Sin lotes para los filtros seleccionados';
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">${msg}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = lots.map(lot => {
+      const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
+      const pct = lot.totalItems > 0 ? Math.round(lot.soldItems / lot.totalItems * 100) : 0;
+      return `<tr>
+        <td><span class="badge badge-lot-code">${escapeHtml(lot.code)}</span></td>
+        <td class="neutral" style="font-size:0.78rem;white-space:nowrap">${fmtDate(lot.purchaseDate)}</td>
+        <td style="font-weight:600">${escapeHtml(lot.name)}</td>
+        <td class="neutral" style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${lot.notes ? escapeHtml(lot.notes) : '<span style="color:#555">—</span>'}</td>
+        <td>
+          <div class="lots-progress">
+            <span>${lot.totalItems}</span>
+            <div class="lots-progress-bar"><div class="lots-progress-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:0.72rem;color:var(--text3)">${lot.soldItems} vend.</span>
+          </div>
+        </td>
+        <td class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(lot.totalCost)}</td>
+        <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent3)">${fmt(lot.totalRevenue)}</td>
+        <td class="${profitCls}" style="font-family:var(--font-mono);font-size:0.82rem">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</td>
+        <td>
+          <div style="display:flex;gap:3px;align-items:center">
+            <button class="btn-sm" onclick="App.openLotDetail(${lot.id})">Ver detalle</button>
+            <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  },
+
+  renderLotsPaginationBar(total, totalPages) {
+    const bar = document.getElementById('lots-pagination-bar');
+    if (!bar) return;
+
+    if (total === 0) { bar.innerHTML = ''; return; }
+
+    const start = (_lotPage - 1) * _lotPageSize + 1;
+    const end   = Math.min(_lotPage * _lotPageSize, total);
+
+    let pages = '';
+    const delta = 2;
+    const left  = Math.max(1, _lotPage - delta);
+    const right = Math.min(totalPages, _lotPage + delta);
+
+    if (left > 1) {
+      pages += `<button class="page-btn" onclick="App.goToLotPage(1)">1</button>`;
+      if (left > 2) pages += `<span style="color:var(--text3);padding:0 0.2rem">…</span>`;
+    }
+    for (let i = left; i <= right; i++) {
+      pages += `<button class="page-btn ${i === _lotPage ? 'active' : ''}" onclick="App.goToLotPage(${i})">${i}</button>`;
+    }
+    if (right < totalPages) {
+      if (right < totalPages - 1) pages += `<span style="color:var(--text3);padding:0 0.2rem">…</span>`;
+      pages += `<button class="page-btn" onclick="App.goToLotPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    bar.innerHTML = `
+      <span class="pagination-info">${start}–${end} de ${total} lotes</span>
+      <div class="pagination-controls">
+        <button class="page-btn" onclick="App.goToLotPage(${_lotPage - 1})" ${_lotPage === 1 ? 'disabled' : ''}>‹</button>
+        ${totalPages > 1 ? pages : ''}
+        <button class="page-btn" onclick="App.goToLotPage(${_lotPage + 1})" ${_lotPage === totalPages ? 'disabled' : ''}>›</button>
+      </div>
+      <div class="pagination-right">
+        <label>Lotes por página
+          <select id="lot-page-size-select" onchange="App.onLotPageSizeChange()">
+            <option value="10" ${_lotPageSize === 10 ? 'selected' : ''}>10</option>
+            <option value="15" ${_lotPageSize === 15 ? 'selected' : ''}>15</option>
+            <option value="20" ${_lotPageSize === 20 ? 'selected' : ''}>20</option>
+          </select>
+        </label>
+      </div>`;
   },
 
   // ── Popup de detalle de lote ─────────────
