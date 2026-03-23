@@ -12,6 +12,13 @@ let lotItemCount = 0;
 let recentItems = [];
 let _currency = 'EUR';
 
+// ── Paginación inventario ──
+let _invItems = [];       // todos los artículos del filtro actual
+let _invPage  = 1;        // página actual
+// Tamaño de página — se persiste en localStorage
+const _pageSizeKey = 'retro_inv_page_size';
+let _invPageSize = parseInt(localStorage.getItem(_pageSizeKey)) || 10;
+
 // ═══════════════════════════════════════════
 // SISTEMA DE ETIQUETAS
 // ═══════════════════════════════════════════
@@ -500,16 +507,88 @@ const App = {
     else if (statusFilter === 'false') { params.set('isSold', 'false'); params.set('isCollection', 'false'); }
     else if (statusFilter === 'true') params.set('isSold', 'true');
 
-    // Filtro por tags activos
     const activeTags = App.getActiveTagFilters();
     if (activeTags.length) params.set('tags', activeTags.join(','));
 
     try {
-      const items = await App.get(`/items?${params}`);
-      App.renderInventoryTable(items);
+      _invItems = await App.get(`/items?${params}`);
+      _invPage  = 1; // reset a primera página al cambiar filtros
+      App.renderInventoryPage();
     } catch (e) {
       App.toast('Error cargando inventario', 'error');
     }
+  },
+
+  onPageSizeChange() {
+    const sel = document.getElementById('page-size-select');
+    _invPageSize = parseInt(sel.value) || 10;
+    localStorage.setItem(_pageSizeKey, _invPageSize);
+    _invPage = 1;
+    App.renderInventoryPage();
+  },
+
+  goToPage(page) {
+    _invPage = page;
+    App.renderInventoryPage();
+    // Scroll suave al top de la tabla
+    document.getElementById('inventory-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+
+  renderInventoryPage() {
+    const total      = _invItems.length;
+    const totalPages = Math.max(1, Math.ceil(total / _invPageSize));
+    if (_invPage > totalPages) _invPage = totalPages;
+
+    const start = (_invPage - 1) * _invPageSize;
+    const page  = _invItems.slice(start, start + _invPageSize);
+
+    App.renderInventoryTable(page);
+    App.renderPaginationBar(total, totalPages);
+  },
+
+  renderPaginationBar(total, totalPages) {
+    const bar = document.getElementById('pagination-bar');
+    if (!bar) return;
+
+    if (total === 0) { bar.innerHTML = ''; return; }
+
+    const start = (_invPage - 1) * _invPageSize + 1;
+    const end   = Math.min(_invPage * _invPageSize, total);
+
+    // Botones de página (máx 5 visibles con ellipsis)
+    let pages = '';
+    const delta = 2;
+    const left  = Math.max(1, _invPage - delta);
+    const right = Math.min(totalPages, _invPage + delta);
+
+    if (left > 1) {
+      pages += `<button class="page-btn" onclick="App.goToPage(1)">1</button>`;
+      if (left > 2) pages += `<span style="color:var(--text3);padding:0 0.2rem">…</span>`;
+    }
+    for (let i = left; i <= right; i++) {
+      pages += `<button class="page-btn ${i === _invPage ? 'active' : ''}" onclick="App.goToPage(${i})">${i}</button>`;
+    }
+    if (right < totalPages) {
+      if (right < totalPages - 1) pages += `<span style="color:var(--text3);padding:0 0.2rem">…</span>`;
+      pages += `<button class="page-btn" onclick="App.goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    bar.innerHTML = `
+      <span class="pagination-info">${start}–${end} de ${total} artículos</span>
+      <div class="pagination-controls">
+        <button class="page-btn" onclick="App.goToPage(${_invPage - 1})" ${_invPage === 1 ? 'disabled' : ''}>‹</button>
+        ${totalPages > 1 ? pages : ''}
+        <button class="page-btn" onclick="App.goToPage(${_invPage + 1})" ${_invPage === totalPages ? 'disabled' : ''}>›</button>
+      </div>
+      <div class="pagination-right">
+        <label>Artículos por página
+          <select id="page-size-select" onchange="App.onPageSizeChange()">
+            <option value="10" ${_invPageSize === 10 ? 'selected' : ''}>10</option>
+            <option value="15" ${_invPageSize === 15 ? 'selected' : ''}>15</option>
+            <option value="20" ${_invPageSize === 20 ? 'selected' : ''}>20</option>
+          </select>
+        </label>
+      </div>`;
   },
 
   // Devuelve los tags seleccionados en el dropdown de filtro

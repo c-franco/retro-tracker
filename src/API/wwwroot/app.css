@@ -1129,6 +1129,79 @@ select.field-error option {
 }
 .btn-danger:hover { opacity: 0.85; }
 
+/* ── PAGINATION ── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.pagination-right label {
+  font-size: 0.8rem;
+  color: var(--text2);
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.pagination-right select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.82rem;
+  width: auto;
+  cursor: pointer;
+}
+.pagination-right select:focus { outline: none; border-color: var(--accent); }
+
+.page-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 2rem;
+  text-align: center;
+  line-height: 1;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.page-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
+
 /* ── TOAST ── */
 .toast {
   position: fixed;
