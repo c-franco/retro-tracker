@@ -603,6 +603,7 @@ const App = {
   },
 
   // Pobla el dropdown de filtro de tags con los tags del cache
+  // FIX: usa <div> en lugar de <label> para evitar heredar flex-direction:column del label global
   populateTagFilter() {
     const dd = document.getElementById('tagFilterDropdown');
     if (!dd) return;
@@ -612,18 +613,45 @@ const App = {
       return;
     }
     dd.innerHTML = _allTags.map(t =>
-      `<label class="tag-filter-option">
+      `<div class="tag-filter-option" onclick="this.querySelector('input').click();event.stopPropagation()">
         <input type="checkbox" data-tag="${escapeHtml(t.name)}" ${active.includes(t.name) ? 'checked' : ''}
-               onchange="App.onTagFilterChange()" />
+               onchange="App.onTagFilterChange()" onclick="event.stopPropagation()" />
         ${tagPillReadonly(t.name)}
         <span style="color:var(--text3);font-size:0.72rem;margin-left:auto">${t.itemCount}</span>
-      </label>`
+      </div>`
     ).join('');
   },
 
   toggleTagFilterDropdown() {
-    const dd = document.getElementById('tagFilterDropdown');
-    dd.classList.toggle('open');
+    const dd  = document.getElementById('tagFilterDropdown');
+    const btn = document.getElementById('tagFilterBtn');
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); return; }
+
+    // Abrir primero para poder medir el ancho real
+    dd.style.position = 'fixed';
+    dd.style.top    = '-9999px';
+    dd.style.left   = '-9999px';
+    dd.style.width  = '220px';
+    dd.style.zIndex = '9999';
+    dd.classList.add('open');
+
+    // Calcular posición tras render
+    const rect   = btn.getBoundingClientRect();
+    const ddW    = dd.offsetWidth;
+    const vw     = window.innerWidth;
+    const margin = 8; // margen mínimo del borde del viewport
+
+    let left = rect.left;
+    // Si se sale por la derecha, alinear al borde derecho del botón
+    if (left + ddW + margin > vw) {
+      left = rect.right - ddW;
+    }
+    // Si aún así se sale por la izquierda, pegarlo al margen izquierdo
+    if (left < margin) left = margin;
+
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = left + 'px';
   },
 
   onTagFilterChange() {

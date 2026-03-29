@@ -135,7 +135,6 @@ body {
   min-height: 100vh;
   max-width: 1400px;
   min-width: 0;
-  overflow-x: hidden;
 }
 
 /* ── VIEWS ── */
@@ -845,7 +844,7 @@ select.field-error option {
 .tag-suggestion-count { font-size:0.72rem; color:var(--text3); }
 
 /* Filtro por etiquetas en barra de filtros */
-.tag-filter-wrap { position: relative; }
+.tag-filter-wrap { position: relative; z-index: 300; }
 .tag-filter-btn {
   display: flex; align-items: center; gap: 0.5rem;
   background: var(--surface); border: 1px solid var(--border);
@@ -858,22 +857,53 @@ select.field-error option {
 .tag-filter-btn:hover { border-color: var(--text2); color: var(--text); }
 
 .tag-filter-dropdown {
-  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  display: none;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 0.4rem;
-  z-index: 200; min-width: 210px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.7);
   max-height: 280px; overflow-y: auto;
 }
 .tag-filter-dropdown.open { display: flex; flex-direction: column; gap: 0.15rem; }
+
+/* ── FIX: sobreescribir flex-direction del label global ── */
 .tag-filter-option {
-  display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.35rem 0.5rem; border-radius: 6px;
-  cursor: pointer; font-size: 0.83rem; color: var(--text2);
-  transition: background 0.1s; user-select:none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: var(--text2);
+  transition: background 0.1s;
+  user-select: none;
 }
 .tag-filter-option:hover { background: var(--surface2); }
-.tag-filter-option input { width:auto; accent-color:var(--accent); cursor:pointer; }
+.tag-filter-option input[type="checkbox"] {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  max-width: 14px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  background: revert;
+  border: revert;
+  border-radius: revert;
+  padding: 0;
+  margin: 0;
+  font-size: revert;
+  transition: none;
+}
+
+.tag-filter-option input[type="checkbox"]:focus {
+  outline: none;
+  border-color: revert;
+}
 .tag-filter-empty { padding:0.5rem; font-size:0.8rem; color:var(--text3); text-align:center; }
 
 /* Tags en ajustes */
