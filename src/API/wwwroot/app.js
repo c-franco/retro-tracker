@@ -1291,6 +1291,13 @@ const App = {
       <label style="font-size:0.78rem">Plataforma *
         <select data-field="platform"><option value="">${t('common.selectOption')}</option></select>
       </label>
+      <label style="font-size:0.78rem">${t('form.condition')}
+        <select data-field="condition">
+          <option value="Used">${t('status.used')}</option>
+          <option value="New">${t('status.new')}</option>
+          <option value="NeedsRepair">${t('status.needsRepair')}</option>
+        </select>
+      </label>
       <label style="font-size:0.78rem">Precio (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price"
                oninput="App.recalcLotItems()" />
@@ -1369,7 +1376,7 @@ const App = {
           name:          r.querySelector('[data-field="name"]').value.trim(),
           type:          r.querySelector('[data-field="type"]').value,
           platform:      r.querySelector('[data-field="platform"]').value.trim(),
-          condition:     'Used',
+          condition:     r.querySelector('[data-field="condition"]').value,
           purchasePrice: parseFloat(r.querySelector('[data-field="price"]').value)    || 0,
           shippingCost:  parseFloat(r.querySelector('[data-field="shipping"]').value) || 0
         }))
