@@ -186,7 +186,7 @@ public class ImportService
 
             if (errors.Any(e => e.Row == rowNum)) continue;
 
-            // ── Col 7: Código Lote (opcional) ──
+            // ── Col 7: Código Lote ──
             var lotCode  = Get(C_LOT_CODE).NullIfEmpty();
             var lotName  = Get(C_LOT_NAME).NullIfEmpty();
             var lotNotes = Get(C_LOT_NOTES).NullIfEmpty();

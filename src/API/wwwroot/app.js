@@ -1254,11 +1254,11 @@ const App = {
       <label style="font-size:0.78rem">Plataforma *
         <select data-field="platform"><option value="">— Selecciona —</option></select>
       </label>
-      <label style="font-size:0.78rem">Precio €
+      <label style="font-size:0.78rem">Precio (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price"
                oninput="App.recalcLotItems()" />
       </label>
-      <label style="font-size:0.78rem">Envío €
+      <label style="font-size:0.78rem">Envío (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="shipping" />
       </label>
       <button class="btn-icon" style="margin-top:1.4rem"
@@ -1434,10 +1434,10 @@ const App = {
           <option value="NeedsRepair">Reparar</option>
         </select>
       </label>
-      <label style="font-size:0.78rem">Precio €
+      <label style="font-size:0.78rem">Precio (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price" />
       </label>
-      <label style="font-size:0.78rem">Envío €
+      <label style="font-size:0.78rem">Envío (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" value="0" data-field="shipping" />
       </label>
       <button class="btn-icon" style="margin-top:1.4rem"
