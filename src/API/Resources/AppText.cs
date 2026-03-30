@@ -171,6 +171,7 @@ public static class AppText
 
         ["quickAdd.title"] = "Registro Rápido",
         ["quickAdd.namePlaceholder"] = "Ej: Nintendo DSi Azul",
+        ["quickAdd.pricePlaceholder"] = "0.00",
         ["quickAdd.notesPlaceholder"] = "Wallapop, compra a...",
         ["quickAdd.addTagPlaceholder"] = "Añadir etiqueta...",
         ["quickAdd.tagsHelp"] = "Enter o coma para añadir · ✕ para quitar",

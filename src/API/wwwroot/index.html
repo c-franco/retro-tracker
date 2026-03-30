@@ -364,7 +364,7 @@
       <div class="modal-body">
         <input type="hidden" id="item-id" />
         <div class="form-row">
-          <label>Nombre *<input type="text" id="item-name" /></label>
+          <label>Nombre *<input type="text" id="item-name" data-placeholder="quickAdd.namePlaceholder" /></label>
           <label>Plataforma *<select id="item-platform"></select></label>
         </div>
         <div class="form-row">
@@ -384,7 +384,7 @@
           </label>
         </div>
         <div class="form-row">
-          <label>Precio Compra (€) *<input type="number" id="item-purchase-price" step="0.01" /></label>
+          <label>Precio Compra (€) *<input type="number" id="item-purchase-price" step="0.01" data-placeholder="quickAdd.pricePlaceholder" /></label>
           <label>Gastos Envío (€)<input type="number" id="item-shipping" step="0.01" value="0" /></label>
         </div>
         <div class="form-row">
@@ -450,12 +450,12 @@
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <label><span data-text="lots.lotName"></span> *<input type="text" id="lot-name" data-placeholder="quickAdd.namePlaceholder" /></label>
+          <label><span><span data-text="lots.lotName"></span> *</span><input type="text" id="lot-name" data-placeholder="quickAdd.namePlaceholder" /></label>
           <label>Fecha<input type="date" id="lot-date" /></label>
         </div>
         <div class="form-row">
           <label>Precio Sin Envío (€) *
-            <input type="number" id="lot-price" step="0.01" oninput="App.recalcLotItems()" />
+            <input type="number" id="lot-price" step="0.01" data-placeholder="quickAdd.pricePlaceholder" oninput="App.recalcLotItems()" />
           </label>
           <label>Envío Total (€)
             <input type="number" id="lot-shipping" step="0.01" value="0" oninput="App.recalcLotItems()" />
