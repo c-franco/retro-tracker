@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
+using RetroGameTracker.Resources;
 
 namespace RetroGameTracker.Services;
 
@@ -18,11 +19,26 @@ public class ExportService
     // 18:Coleccion  19:Notas  20:Etiquetas
     public static readonly string[] InventoryHeaders = new[]
     {
-        "ID", "Tipo", "Nombre", "Plataforma", "Condicion", "Estado",
-        "Codigo Lote", "Nombre Lote", "Notas Lote",
-        "Precio Compra", "Envio", "Coste Total",
-        "Fecha Compra", "Vendido", "Precio Venta", "Fecha Venta",
-        "Beneficio", "Coleccion", "Notas", "Etiquetas"
+        AppText.Get("backend.export.header.id"),
+        AppText.Get("backend.export.header.type"),
+        AppText.Get("backend.export.header.name"),
+        AppText.Get("backend.export.header.platform"),
+        AppText.Get("backend.export.header.condition"),
+        AppText.Get("backend.export.header.state"),
+        AppText.Get("backend.export.header.lotCode"),
+        AppText.Get("backend.export.header.lotName"),
+        AppText.Get("backend.export.header.lotNotes"),
+        AppText.Get("backend.export.header.purchasePrice"),
+        AppText.Get("backend.export.header.shipping"),
+        AppText.Get("backend.export.header.totalCost"),
+        AppText.Get("backend.export.header.purchaseDate"),
+        AppText.Get("backend.export.header.sold"),
+        AppText.Get("backend.export.header.salePrice"),
+        AppText.Get("backend.export.header.saleDate"),
+        AppText.Get("backend.export.header.benefit"),
+        AppText.Get("backend.export.header.collection"),
+        AppText.Get("backend.export.header.notes"),
+        AppText.Get("backend.export.header.tags")
     };
 
     public async Task<byte[]> ExportItemsToExcelAsync()
@@ -34,7 +50,7 @@ public class ExportService
             .ToListAsync();
 
         using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add("Inventario");
+        var ws = wb.Worksheets.Add(AppText.Get("backend.export.inventorySheet"));
 
         // Encabezados
         for (int col = 1; col <= InventoryHeaders.Length; col++)
@@ -55,7 +71,11 @@ public class ExportService
             ws.Cell(row, 3).Value  = item.Name;
             ws.Cell(row, 4).Value  = item.Platform ?? "";
             ws.Cell(row, 5).Value  = item.Condition.ToString();
-            ws.Cell(row, 6).Value  = item.IsSold ? "Vendido" : item.IsCollection ? "Coleccion" : "Stock";
+            ws.Cell(row, 6).Value  = item.IsSold
+                ? AppText.Get("backend.export.state.sold")
+                : item.IsCollection
+                    ? AppText.Get("backend.export.state.collection")
+                    : AppText.Get("backend.export.state.stock");
             ws.Cell(row, 7).Value  = item.Lot?.Code ?? "";
             ws.Cell(row, 8).Value  = item.Lot?.Name ?? "";
             ws.Cell(row, 9).Value  = item.Lot?.Notes ?? "";
@@ -63,11 +83,11 @@ public class ExportService
             ws.Cell(row, 11).Value = item.ShippingCost;
             ws.Cell(row, 12).Value = item.TotalCost;
             ws.Cell(row, 13).Value = item.PurchaseDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 14).Value = item.IsSold ? "Si" : "No";
+            ws.Cell(row, 14).Value = item.IsSold ? AppText.Get("backend.export.yes") : AppText.Get("backend.export.no");
             ws.Cell(row, 15).Value = item.SalePrice.HasValue ? item.SalePrice.Value : 0;
             ws.Cell(row, 16).Value = item.SaleDate.HasValue ? item.SaleDate.Value.ToString("dd/MM/yyyy") : "";
             ws.Cell(row, 17).Value = item.Profit.HasValue ? item.Profit.Value : 0;
-            ws.Cell(row, 18).Value = item.IsCollection ? "Si" : "No";
+            ws.Cell(row, 18).Value = item.IsCollection ? AppText.Get("backend.export.yes") : AppText.Get("backend.export.no");
             ws.Cell(row, 19).Value = item.Notes ?? "";
             ws.Cell(row, 20).Value = string.Join(", ",
                 item.ItemTags.Select(it => it.Tag.Name).OrderBy(t => t));
@@ -83,10 +103,21 @@ public class ExportService
         }
 
         // Segunda hoja: Lotes
-        var lotsSheet = wb.Worksheets.Add("Lotes");
+        var lotsSheet = wb.Worksheets.Add(AppText.Get("backend.export.lotsSheet"));
         var lots = await _db.Lots.Include(l => l.Items).OrderBy(l => l.Code).ToListAsync();
 
-        string[] lotHeaders = { "Código", "Nombre", "Notas", "Fecha Compra", "Artículos", "Vendidos", "Invertido", "Recuperado", "Beneficio" };
+        string[] lotHeaders =
+        {
+            AppText.Get("backend.export.lotHeader.code"),
+            AppText.Get("backend.export.header.name"),
+            AppText.Get("backend.export.header.notes"),
+            AppText.Get("backend.export.lotHeader.purchaseDate"),
+            AppText.Get("backend.export.lotHeader.items"),
+            AppText.Get("backend.export.lotHeader.soldItems"),
+            AppText.Get("backend.export.lotHeader.invested"),
+            AppText.Get("backend.export.lotHeader.recovered"),
+            AppText.Get("backend.export.lotHeader.profit")
+        };
         for (int col = 1; col <= lotHeaders.Length; col++)
         {
             var cell = lotsSheet.Cell(1, col);
@@ -115,21 +146,21 @@ public class ExportService
         }
 
         // Tercera hoja: Resumen financiero
-        var wsSummary = wb.Worksheets.Add("Resumen");
+        var wsSummary = wb.Worksheets.Add(AppText.Get("backend.export.summarySheet"));
         var settings  = await _db.AppSettings.FirstAsync();
         decimal totalInvested = items.Where(i => !i.IsCollection).Sum(i => i.TotalCost);
         decimal totalRevenue  = items.Where(i => i.IsSold).Sum(i => i.SalePrice ?? 0);
         decimal totalProfit   = totalRevenue - totalInvested;
 
-        wsSummary.Cell("A1").Value = "Concepto";
-        wsSummary.Cell("B1").Value = "Valor";
+        wsSummary.Cell("A1").Value = AppText.Get("backend.export.summary.concept");
+        wsSummary.Cell("B1").Value = AppText.Get("backend.export.summary.value");
         wsSummary.Cell("A1").Style.Font.Bold = true;
         wsSummary.Cell("B1").Style.Font.Bold = true;
-        wsSummary.Cell("A2").Value = "Saldo inicial";    wsSummary.Cell("B2").Value = settings.InitialBalance;
-        wsSummary.Cell("A3").Value = "Total invertido";  wsSummary.Cell("B3").Value = totalInvested;
-        wsSummary.Cell("A4").Value = "Total recuperado"; wsSummary.Cell("B4").Value = totalRevenue;
-        wsSummary.Cell("A5").Value = "Beneficio neto";   wsSummary.Cell("B5").Value = totalProfit;
-        wsSummary.Cell("A6").Value = "Balance final";    wsSummary.Cell("B6").Value = settings.InitialBalance + totalProfit;
+        wsSummary.Cell("A2").Value = AppText.Get("backend.export.summary.initialBalance"); wsSummary.Cell("B2").Value = settings.InitialBalance;
+        wsSummary.Cell("A3").Value = AppText.Get("backend.export.summary.totalInvested");  wsSummary.Cell("B3").Value = totalInvested;
+        wsSummary.Cell("A4").Value = AppText.Get("backend.export.summary.totalRecovered"); wsSummary.Cell("B4").Value = totalRevenue;
+        wsSummary.Cell("A5").Value = AppText.Get("backend.export.summary.netProfit");      wsSummary.Cell("B5").Value = totalProfit;
+        wsSummary.Cell("A6").Value = AppText.Get("backend.export.summary.finalBalance");   wsSummary.Cell("B6").Value = settings.InitialBalance + totalProfit;
 
         ws.Columns().AdjustToContents();
         lotsSheet.Columns().AdjustToContents();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎮 Retro Tracker</title>
+  <title></title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -14,18 +14,18 @@
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <span class="logo-icon">🕹️</span>
-      <span class="logo-text">RetroTracker</span>
+      <span class="logo-text" data-text="meta.title"></span>
     </div>
     <ul class="nav-links">
-      <li><a href="#" class="nav-link active" data-view="dashboard">📊 Dashboard</a></li>
-      <li><a href="#" class="nav-link" data-view="inventory">📦 Inventario</a></li>
-      <li><a href="#" class="nav-link" data-view="lots">🎁 Lotes</a></li>
-      <li><a href="#" class="nav-link" data-view="quick-add">⚡ Registro Rápido</a></li>
-      <li><a href="#" class="nav-link" data-view="settings">⚙️ Ajustes</a></li>
+      <li><a href="#" class="nav-link active" data-view="dashboard">📊 <span data-text="nav.dashboard"></span></a></li>
+      <li><a href="#" class="nav-link" data-view="inventory">📦 <span data-text="nav.inventory"></span></a></li>
+      <li><a href="#" class="nav-link" data-view="lots">🎁 <span data-text="nav.lots"></span></a></li>
+      <li><a href="#" class="nav-link" data-view="quick-add">⚡ <span data-text="nav.quickAdd"></span></a></li>
+      <li><a href="#" class="nav-link" data-view="settings">⚙️ <span data-text="nav.settings"></span></a></li>
     </ul>
     <div class="sidebar-bottom">
-      <button class="btn-export" onclick="App.exportExcel()" style="margin-bottom:0.5rem">📥 Exportar Excel</button>
-      <button class="btn-export" onclick="document.getElementById('import-file-input').click()">📤 Importar Excel</button>
+      <button class="btn-export" onclick="App.exportExcel()" style="margin-bottom:0.5rem">📥 <span data-text="nav.exportExcel"></span></button>
+      <button class="btn-export" onclick="document.getElementById('import-file-input').click()">📤 <span data-text="nav.importExcel"></span></button>
       <input type="file" id="import-file-input" accept=".xlsx" style="display:none" onchange="App.importExcel(this)" />
     </div>
   </nav>
@@ -33,7 +33,7 @@
   <!-- MOBILE HEADER -->
   <header class="mobile-header">
     <button class="burger" id="burgerBtn" onclick="App.toggleSidebar()">☰</button>
-    <span class="mobile-title">🕹️ RetroTracker</span>
+    <span class="mobile-title">🕹️ <span data-text="meta.title"></span></span>
     <button class="btn-sm" onclick="App.showView('quick-add')">⚡</button>
   </header>
 
@@ -43,7 +43,7 @@
     <!-- ──── DASHBOARD ──── -->
     <section id="view-dashboard" class="view active">
       <div class="view-header">
-        <h1>Dashboard</h1>
+        <h1 data-text="dashboard.title"></h1>
       </div>
 
       <div class="stats-grid" id="dash-stats">
@@ -51,57 +51,57 @@
           <div class="stat-icon">💸</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-invested">—</div>
-            <div class="stat-label">Invertido</div>
+            <div class="stat-label" data-text="dashboard.invested"></div>
           </div>
         </div>
         <div class="stat-card revenue">
           <div class="stat-icon">💰</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-revenue">—</div>
-            <div class="stat-label">Recuperado</div>
+            <div class="stat-label" data-text="dashboard.recovered"></div>
           </div>
         </div>
         <div class="stat-card profit">
           <div class="stat-icon">📈</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-profit">—</div>
-            <div class="stat-label">Beneficio</div>
+            <div class="stat-label" data-text="dashboard.profit"></div>
           </div>
         </div>
         <div class="stat-card balance">
           <div class="stat-icon">🏦</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-balance">—</div>
-            <div class="stat-label">Balance Final</div>
+            <div class="stat-label" data-text="dashboard.finalBalance"></div>
           </div>
         </div>
         <div class="stat-card stock">
           <div class="stat-icon">🗃️</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-stock-value">—</div>
-            <div class="stat-label">Valor en Stock</div>
-            <div class="stat-sublabel" id="stat-stock-count">0 artículos</div>
+            <div class="stat-label" data-text="dashboard.stockValue"></div>
+            <div class="stat-sublabel" id="stat-stock-count"></div>
           </div>
         </div>
         <div class="stat-card collection">
           <div class="stat-icon">⭐</div>
           <div class="stat-body">
             <div class="stat-value" id="stat-collection-value">—</div>
-            <div class="stat-label">Colección Personal</div>
-            <div class="stat-sublabel" id="stat-collection-count">0 artículos</div>
+            <div class="stat-label" data-text="dashboard.collectionValue"></div>
+            <div class="stat-sublabel" id="stat-collection-count"></div>
           </div>
         </div>
       </div>
 
       <div class="charts-row">
         <div class="chart-card">
-          <h3>Compras vs Ventas (mensual)</h3>
+          <h3 data-text="dashboard.monthlyChart"></h3>
           <div class="chart-canvas-wrap">
             <canvas id="chartMonthly"></canvas>
           </div>
         </div>
         <div class="chart-card" id="chart-platform-card">
-          <h3>Por Plataforma</h3>
+          <h3 data-text="dashboard.byPlatform"></h3>
           <!-- Vista gráfico (escritorio) -->
           <div class="chart-canvas-wrap chart-canvas-wrap--donut">
             <canvas id="chartPlatform"></canvas>
@@ -112,13 +112,13 @@
       </div>
 
       <div class="pending-section">
-        <h3>📋 Pendientes de Vender <span class="badge" id="pending-count">0</span></h3>
+        <h3>📋 <span data-text="dashboard.pendingToSell"></span> <span class="badge" id="pending-count">0</span></h3>
         <div class="table-wrap">
           <table class="data-table" id="pending-table">
             <thead>
               <tr>
-                <th>Artículo</th><th>Plataforma</th><th>Tipo</th>
-                <th>Coste</th><th>Días en Stock</th><th>Acción</th>
+                <th data-text="dashboard.pending.item"></th><th data-text="dashboard.pending.platform"></th><th data-text="dashboard.pending.type"></th>
+                <th data-text="dashboard.pending.cost"></th><th data-text="dashboard.pending.daysInStock"></th><th data-text="dashboard.pending.action"></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -130,31 +130,31 @@
     <!-- ──── INVENTARIO ──── -->
     <section id="view-inventory" class="view">
       <div class="view-header">
-        <h1>Inventario</h1>
-        <button class="btn-primary" onclick="App.openItemModal()">+ Añadir Artículo</button>
+        <h1 data-text="inventory.title"></h1>
+        <button class="btn-primary" onclick="App.openItemModal()">+ <span data-text="inventory.addItem"></span></button>
       </div>
 
       <div class="filters-bar">
-        <input type="search" id="search-input" placeholder="🔍 Buscar artículo..."
+        <input type="search" id="search-input" data-placeholder="inventory.searchPlaceholder"
                oninput="App.loadInventory()" />
         <select id="filter-platform" onchange="App.loadInventory()">
-          <option value="">Todas las plataformas</option>
+          <option value="" data-text="inventory.allPlatforms"></option>
         </select>
         <select id="filter-type" onchange="App.loadInventory()">
-          <option value="">Todos los tipos</option>
-          <option value="Console">Consola</option>
-          <option value="VideoGame">Videojuego</option>
-          <option value="Accessory">Accesorio</option>
+          <option value="" data-text="inventory.allTypes"></option>
+          <option value="Console" data-text="inventory.type.console"></option>
+          <option value="VideoGame" data-text="inventory.type.videoGame"></option>
+          <option value="Accessory" data-text="inventory.type.accessory"></option>
         </select>
         <select id="filter-status" onchange="App.loadInventory()">
-          <option value="">Estado: todos</option>
-          <option value="false">En Stock</option>
-          <option value="true">Vendido</option>
-          <option value="collection">⭐ Colección</option>
+          <option value="" data-text="inventory.allStatuses"></option>
+          <option value="false" data-text="inventory.status.inStock"></option>
+          <option value="true" data-text="inventory.status.sold"></option>
+          <option value="collection" data-text="inventory.status.collection"></option>
         </select>
         <div class="tag-filter-wrap">
           <button class="tag-filter-btn" id="tagFilterBtn" onclick="App.toggleTagFilterDropdown()">
-            🏷️ Etiquetas <span id="tagFilterCount"></span>▾
+            🏷️ <span data-text="inventory.tags"></span> <span id="tagFilterCount"></span>▾
           </button>
           <div class="tag-filter-dropdown" id="tagFilterDropdown"></div>
         </div>
@@ -164,17 +164,17 @@
         <table class="data-table" id="inventory-table">
           <thead>
             <tr>
-              <th>Artículo</th>
-              <th class="inv-col-tipo">Tipo</th>
-              <th class="inv-col-plataforma">Plataforma</th>
-              <th class="inv-col-estado">Estado</th>
-              <th class="inv-col-lote">Lote</th>
-              <th class="inv-col-etiquetas">Etiquetas</th>
-              <th class="inv-col-coste">Coste</th>
-              <th class="inv-col-venta">Venta</th>
-              <th class="inv-col-beneficio">Beneficio</th>
-              <th class="inv-col-fecha">Fecha</th>
-              <th>Acciones</th>
+              <th data-text="inventory.column.item"></th>
+              <th class="inv-col-tipo" data-text="inventory.column.type"></th>
+              <th class="inv-col-plataforma" data-text="inventory.column.platform"></th>
+              <th class="inv-col-estado" data-text="inventory.column.status"></th>
+              <th class="inv-col-lote" data-text="inventory.column.lot"></th>
+              <th class="inv-col-etiquetas" data-text="inventory.column.tags"></th>
+              <th class="inv-col-coste" data-text="inventory.column.cost"></th>
+              <th class="inv-col-venta" data-text="inventory.column.sale"></th>
+              <th class="inv-col-beneficio" data-text="inventory.column.profit"></th>
+              <th class="inv-col-fecha" data-text="inventory.column.date"></th>
+              <th data-text="inventory.column.actions"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -188,34 +188,34 @@
     <!-- ──── LOTES ──── -->
     <section id="view-lots" class="view">
       <div class="view-header">
-        <h1>Lotes de Compra</h1>
-        <button class="btn-primary" onclick="App.openLotModal()">+ Nuevo Lote</button>
+        <h1 data-text="lots.title"></h1>
+        <button class="btn-primary" onclick="App.openLotModal()">+ <span data-text="lots.newLot"></span></button>
       </div>
       <div class="filters-bar" style="margin-bottom:1rem">
-        <input type="search" id="lots-search" placeholder="🔍 Buscar por código o nombre..."
+        <input type="search" id="lots-search" data-placeholder="lots.searchPlaceholder"
                oninput="App.loadLots()" style="min-width:220px;flex:1" />
         <select id="lots-period" onchange="App.loadLots()">
-          <option value="">Todo</option>
-          <option value="week">Esta semana</option>
-          <option value="month">Este mes</option>
-          <option value="3months">Últimos 3 meses</option>
-          <option value="6months">Últimos 6 meses</option>
-          <option value="year">Este año</option>
+          <option value="" data-text="lots.period.all"></option>
+          <option value="week" data-text="lots.period.week"></option>
+          <option value="month" data-text="lots.period.month"></option>
+          <option value="3months" data-text="lots.period.quarter"></option>
+          <option value="6months" data-text="lots.period.halfYear"></option>
+          <option value="year" data-text="lots.period.year"></option>
         </select>
       </div>
       <div class="table-wrap">
         <table class="data-table" id="lots-table">
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Fecha</th>
-              <th>Nombre</th>
-              <th>Notas</th>
-              <th>Artículos</th>
-              <th>Invertido</th>
-              <th>Recuperado</th>
-              <th>Beneficio</th>
-              <th>Acciones</th>
+              <th data-text="lots.column.code"></th>
+              <th data-text="lots.column.date"></th>
+              <th data-text="lots.column.name"></th>
+              <th data-text="lots.column.notes"></th>
+              <th data-text="lots.column.items"></th>
+              <th data-text="lots.column.invested"></th>
+              <th data-text="lots.column.recovered"></th>
+              <th data-text="lots.column.profit"></th>
+              <th data-text="lots.column.actions"></th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -227,14 +227,14 @@
     <!-- ──── REGISTRO RÁPIDO ──── -->
     <section id="view-quick-add" class="view">
       <div class="view-header">
-        <h1>Registro Rápido</h1>
+        <h1 data-text="quickAdd.title"></h1>
         <p class="subtitle"></p>
       </div>
 
       <div class="quick-form-card">
         <div class="form-row">
           <label>Nombre *
-            <input type="text" id="qa-name" placeholder="Ej: Nintendo DSi Azul" />
+            <input type="text" id="qa-name" data-placeholder="quickAdd.namePlaceholder" />
           </label>
           <label>Plataforma *
             <select id="qa-platform"></select>
@@ -243,16 +243,16 @@
         <div class="form-row">
           <label>Tipo *
             <select id="qa-type">
-              <option value="Console">Consola</option>
-              <option value="VideoGame">Videojuego</option>
-              <option value="Accessory">Accesorio</option>
+              <option value="Console" data-text="inventory.type.console"></option>
+              <option value="VideoGame" data-text="inventory.type.videoGame"></option>
+              <option value="Accessory" data-text="inventory.type.accessory"></option>
             </select>
           </label>
           <label>Estado
             <select id="qa-condition">
-              <option value="Used">Usado</option>
-              <option value="New">Nuevo</option>
-              <option value="NeedsRepair">Para Reparar</option>
+              <option value="Used" data-text="status.used"></option>
+              <option value="New" data-text="status.new"></option>
+              <option value="NeedsRepair" data-text="status.needsRepair"></option>
             </select>
           </label>
         </div>
@@ -269,53 +269,53 @@
             <input type="date" id="qa-date" />
           </label>
           <label>Notas
-            <input type="text" id="qa-notes" placeholder="Wallapop, compra a..." />
+            <input type="text" id="qa-notes" data-placeholder="quickAdd.notesPlaceholder" />
           </label>
         </div>
         <label style="margin-bottom:1rem">Etiquetas
           <div class="pill-input-wrap" id="qa-tags-wrap" onclick="document.getElementById('qa-tag-input').focus()">
-            <input type="text" id="qa-tag-input" placeholder="Añadir etiqueta..." autocomplete="off"
+            <input type="text" id="qa-tag-input" data-placeholder="quickAdd.addTagPlaceholder" autocomplete="off"
                    oninput="App.tags.onInput('qa')" onkeydown="App.tags.onKey(event,'qa')" />
           </div>
           <div class="tag-suggestions" id="qa-tag-suggestions"></div>
-          <span style="font-size:0.75rem;color:var(--text3)">Enter o coma para añadir · ✕ para quitar</span>
+          <span style="font-size:0.75rem;color:var(--text3)" data-text="quickAdd.tagsHelp"></span>
         </label>
         <label style="flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer;margin-bottom:1rem">
           <input type="checkbox" id="qa-collection" style="width:auto;accent-color:var(--accent3)" />
-          <span style="font-size:0.85rem;color:var(--text2)">⭐ Colección personal</span>
+          <span style="font-size:0.85rem;color:var(--text2)" data-text="quickAdd.personalCollection"></span>
         </label>
         <div class="form-actions">
-          <button class="btn-primary btn-lg" onclick="App.quickAdd()">✅ Añadir al Inventario</button>
-          <button class="btn-secondary" onclick="App.quickAddAndSell()">⚡ Añadir + Vender Ahora</button>
+          <button class="btn-primary btn-lg" onclick="App.quickAdd()">✅ <span data-text="quickAdd.addToInventory"></span></button>
+          <button class="btn-secondary" onclick="App.quickAddAndSell()">⚡ <span data-text="quickAdd.addAndSellNow"></span></button>
         </div>
         <div id="qa-feedback" class="feedback-msg"></div>
       </div>
 
       <div class="quick-history">
-        <h3>Últimas adiciones</h3>
+        <h3 data-text="quickAdd.recentAdditions"></h3>
         <div id="qa-recent" class="recent-list"></div>
       </div>
     </section>
 
     <!-- ──── AJUSTES ──── -->
     <section id="view-settings" class="view">
-      <div class="view-header"><h1>Ajustes</h1></div>
+      <div class="view-header"><h1 data-text="settings.title"></h1></div>
 
       <div class="settings-grid">
         <!-- Columna izquierda -->
         <div class="settings-col">
           <div class="settings-card">
-            <h3>Configuración Financiera</h3>
-            <label>Saldo inicial (€)
+            <h3 data-text="settings.financial"></h3>
+            <label><span data-text="settings.initialBalance"></span>
               <input type="number" id="settings-balance" step="0.01" />
             </label>
-            <label>Moneda
+            <label><span data-text="settings.currency"></span>
               <input type="text" id="settings-currency" value="EUR" maxlength="3" />
             </label>
           </div>
           <div class="settings-card" style="margin-top:1rem">
-            <h3>Plataformas</h3>
-            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Una plataforma por línea. Se usan en todos los desplegables de la aplicación.</p>
+            <h3 data-text="settings.platforms"></h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem" data-text="settings.platformsHelp"></p>
             <textarea id="settings-platforms" rows="10" style="font-family:var(--font-mono);font-size:0.82rem;resize:vertical"></textarea>
           </div>
         </div>
@@ -323,8 +323,8 @@
         <!-- Columna derecha -->
         <div class="settings-col">
           <div class="settings-card">
-            <h3>Columnas del Inventario</h3>
-            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem">Elige qué columnas mostrar en la tabla de inventario. La columna Artículo siempre es visible.</p>
+            <h3 data-text="settings.inventoryColumns"></h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:0.8rem" data-text="settings.inventoryColumnsHelp"></p>
             <div class="col-toggles">
               <label class="col-toggle"><input type="checkbox" data-col="tipo"       checked /> Tipo</label>
               <label class="col-toggle"><input type="checkbox" data-col="plataforma" checked /> Plataforma</label>
@@ -338,16 +338,16 @@
             </div>
           </div>
           <div class="settings-card" style="margin-top:1rem">
-            <h3>🏷️ Etiquetas</h3>
-            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem">Gestiona todas las etiquetas existentes. Puedes renombrarlas o eliminar las que no uses.</p>
+            <h3>🏷️ <span data-text="settings.tagsTitle"></span></h3>
+            <p style="font-size:0.82rem;color:var(--text2);margin-bottom:1rem" data-text="settings.tagsHelp"></p>
             <div id="settings-tags-list" style="display:flex;flex-direction:column;gap:0.4rem"></div>
-            <p id="settings-tags-empty" style="font-size:0.82rem;color:var(--text3);display:none">No hay etiquetas todavía. Añádelas al crear o editar artículos.</p>
+            <p id="settings-tags-empty" style="font-size:0.82rem;color:var(--text3);display:none" data-text="settings.tagsEmpty"></p>
           </div>
         </div>
       </div>
 
       <div class="settings-footer">
-        <button class="btn-primary btn-lg" onclick="App.saveAllSettings()">Guardar ajustes</button>
+        <button class="btn-primary btn-lg" onclick="App.saveAllSettings()" data-text="settings.save"></button>
         <div id="settings-feedback" class="feedback-msg"></div>
       </div>
     </section>
@@ -358,7 +358,7 @@
   <div class="modal-overlay" id="modal-item" onclick="App.closeModal('modal-item')">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2 id="modal-item-title">Añadir Artículo</h2>
+        <h2 id="modal-item-title" data-text="modal.item.addTitle"></h2>
         <button class="modal-close" onclick="App.closeModal('modal-item')">✕</button>
       </div>
       <div class="modal-body">
@@ -370,16 +370,16 @@
         <div class="form-row">
           <label>Tipo *
             <select id="item-type">
-              <option value="Console">Consola</option>
-              <option value="VideoGame">Videojuego</option>
-              <option value="Accessory">Accesorio</option>
+              <option value="Console" data-text="inventory.type.console"></option>
+              <option value="VideoGame" data-text="inventory.type.videoGame"></option>
+              <option value="Accessory" data-text="inventory.type.accessory"></option>
             </select>
           </label>
           <label>Condición
             <select id="item-condition">
-              <option value="Used">Usado</option>
-              <option value="New">Nuevo</option>
-              <option value="NeedsRepair">Para Reparar</option>
+              <option value="Used" data-text="status.used"></option>
+              <option value="New" data-text="status.new"></option>
+              <option value="NeedsRepair" data-text="status.needsRepair"></option>
             </select>
           </label>
         </div>
@@ -389,29 +389,29 @@
         </div>
         <div class="form-row">
           <label>Fecha Compra<input type="date" id="item-purchase-date" /></label>
-          <label>Lote
+          <label><span data-text="form.lot"></span>
             <select id="item-lot-id">
-              <option value="">Sin lote</option>
+              <option value="" data-text="common.noLot"></option>
             </select>
           </label>
         </div>
         <label>Notas<input type="text" id="item-notes" /></label>
         <label style="margin-top:0.8rem">Etiquetas
           <div class="pill-input-wrap" id="item-tags-wrap" onclick="document.getElementById('item-tag-input').focus()">
-            <input type="text" id="item-tag-input" placeholder="Añadir etiqueta..." autocomplete="off"
+            <input type="text" id="item-tag-input" data-placeholder="quickAdd.addTagPlaceholder" autocomplete="off"
                    oninput="App.tags.onInput('item')" onkeydown="App.tags.onKey(event,'item')" />
           </div>
           <div class="tag-suggestions" id="item-tag-suggestions"></div>
-          <span style="font-size:0.75rem;color:var(--text3)">Enter o coma para añadir · ✕ para quitar</span>
+          <span style="font-size:0.75rem;color:var(--text3)" data-text="quickAdd.tagsHelp"></span>
         </label>
         <label class="toggle-label" style="margin-top:0.8rem;flex-direction:row;align-items:center;gap:0.6rem;cursor:pointer">
           <input type="checkbox" id="item-is-collection" style="width:auto;accent-color:var(--accent3)" />
-          <span>⭐ Guardar en colección personal</span>
+          <span data-text="inventory.collectionSaved"></span>
         </label>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-item')">Cancelar</button>
-        <button class="btn-primary" onclick="App.saveItem()">Guardar</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-item')" data-text="modal.cancel"></button>
+        <button class="btn-primary" onclick="App.saveItem()" data-text="modal.save"></button>
       </div>
     </div>
   </div>
@@ -420,7 +420,7 @@
   <div class="modal-overlay" id="modal-sell" onclick="App.closeModal('modal-sell')">
     <div class="modal modal-sm" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>💰 Registrar Venta</h2>
+        <h2>💰 <span data-text="modal.sell.title"></span></h2>
         <button class="modal-close" onclick="App.closeModal('modal-sell')">✕</button>
       </div>
       <div class="modal-body">
@@ -435,8 +435,8 @@
         <div id="sell-profit-preview" class="profit-preview"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-sell')">Cancelar</button>
-        <button class="btn-success" onclick="App.confirmSell()">✅ Confirmar Venta</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-sell')" data-text="modal.cancel"></button>
+        <button class="btn-success" onclick="App.confirmSell()">✅ <span data-text="modal.sell.confirm"></span></button>
       </div>
     </div>
   </div>
@@ -445,12 +445,12 @@
   <div class="modal-overlay" id="modal-lot" onclick="App.closeModal('modal-lot')">
     <div class="modal modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>🎁 Nuevo Lote de Compra</h2>
+        <h2>🎁 <span data-text="lots.newPurchaseLot"></span></h2>
         <button class="modal-close" onclick="App.closeModal('modal-lot')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <label>Nombre del Lote *<input type="text" id="lot-name" placeholder="Ej: Lote DSi + Juego" /></label>
+          <label><span data-text="lots.lotName"></span> *<input type="text" id="lot-name" data-placeholder="quickAdd.namePlaceholder" /></label>
           <label>Fecha<input type="date" id="lot-date" /></label>
         </div>
         <div class="form-row">
@@ -465,16 +465,16 @@
 
         <div class="lot-items-section">
           <div class="lot-items-header">
-            <h4>Artículos del Lote</h4>
-            <button class="btn-sm" onclick="App.addLotItem()">+ Artículo</button>
+            <h4 data-text="lots.lotItems"></h4>
+            <button class="btn-sm" onclick="App.addLotItem()">+ <span data-text="lots.addItem"></span></button>
           </div>
           <div id="lot-items-list"></div>
           <div class="lot-total-info" id="lot-total-info"></div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-lot')">Cancelar</button>
-        <button class="btn-primary" onclick="App.saveLot()">Crear Lote</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-lot')" data-text="modal.cancel"></button>
+        <button class="btn-primary" onclick="App.saveLot()" data-text="modal.lot.create"></button>
       </div>
     </div>
   </div>
@@ -484,7 +484,7 @@
     <div class="modal modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div>
-          <h2>➕ Añadir Artículos al Lote</h2>
+          <h2>➕ <span data-text="lots.addItemsTitle"></span></h2>
           <p id="add-to-lot-subtitle" style="font-size:0.8rem;color:var(--text2);margin-top:2px"></p>
         </div>
         <button class="modal-close" onclick="App.closeModal('modal-add-to-lot')">✕</button>
@@ -493,15 +493,15 @@
         <input type="hidden" id="add-to-lot-id" />
         <div class="lot-items-section" style="border-top:none;padding-top:0">
           <div class="lot-items-header">
-            <h4>Artículos a añadir</h4>
-            <button class="btn-sm" onclick="App.addItemToLotForm()">+ Artículo</button>
+            <h4 data-text="lots.itemsToAdd"></h4>
+            <button class="btn-sm" onclick="App.addItemToLotForm()">+ <span data-text="lots.addItem"></span></button>
           </div>
           <div id="add-to-lot-items-list"></div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-add-to-lot')">Cancelar</button>
-        <button class="btn-primary" onclick="App.saveAddToLot()">✅ Añadir al Lote</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-add-to-lot')" data-text="modal.cancel"></button>
+        <button class="btn-primary" onclick="App.saveAddToLot()">✅ <span data-text="modal.addToLot.confirm"></span></button>
       </div>
     </div>
   </div>
@@ -518,8 +518,8 @@
           <div id="lot-detail-meta" style="font-size:0.78rem;color:var(--text2);display:flex;gap:1.2rem;flex-wrap:wrap"></div>
         </div>
         <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">
-          <button class="btn-sm" id="lot-detail-add-btn" onclick="App.openAddToLotFromDetail()">+ Artículo</button>
-          <button class="btn-sm" id="lot-detail-edit-btn" onclick="App.openEditLotFromDetail()">✏️ Editar</button>
+          <button class="btn-sm" id="lot-detail-add-btn" onclick="App.openAddToLotFromDetail()">+ <span data-text="lots.addItem"></span></button>
+          <button class="btn-sm" id="lot-detail-edit-btn" onclick="App.openEditLotFromDetail()">✏️ <span data-text="common.edit"></span></button>
           <button class="modal-close" onclick="App.closeModal('modal-lot-detail')">✕</button>
         </div>
       </div>
@@ -536,7 +536,7 @@
   <div class="modal-overlay" id="modal-edit-lot" onclick="App.closeModal('modal-edit-lot')">
     <div class="modal modal-sm" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>✏️ Editar Lote</h2>
+        <h2>✏️ <span data-text="lots.editTitle"></span></h2>
         <button class="modal-close" onclick="App.closeModal('modal-edit-lot')">✕</button>
       </div>
       <div class="modal-body">
@@ -548,15 +548,15 @@
           <input type="date" id="edit-lot-date" />
         </label>
         <label>Notas
-          <input type="text" id="edit-lot-notes" placeholder="Wallapop, Mercadillo..." />
+          <input type="text" id="edit-lot-notes" data-placeholder="quickAdd.notesPlaceholder" />
         </label>
         <p style="margin-top:0.8rem;font-size:0.78rem;color:var(--text2)">
-          ⚠️ Si cambias la fecha, todos los artículos del lote la heredarán.
+          <span data-text="lots.warningDatePropagation"></span>
         </p>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-edit-lot')">Cancelar</button>
-        <button class="btn-primary" onclick="App.saveEditLot()">Guardar</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-edit-lot')" data-text="modal.cancel"></button>
+        <button class="btn-primary" onclick="App.saveEditLot()" data-text="modal.save"></button>
       </div>
     </div>
   </div>
@@ -566,8 +566,8 @@
     <div class="modal modal-lg" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div>
-          <h2>⚠️ Importación cancelada</h2>
-          <p style="font-size:0.8rem;color:var(--text2);margin-top:3px">Corrige los errores en el archivo Excel y vuelve a importar.</p>
+          <h2>⚠️ <span data-text="modal.importErrors.title"></span></h2>
+          <p style="font-size:0.8rem;color:var(--text2);margin-top:3px" data-text="modal.importErrors.help"></p>
         </div>
         <button class="modal-close" onclick="App.closeModal('modal-import-errors')">✕</button>
       </div>
@@ -575,7 +575,7 @@
         <div id="import-errors-list" class="import-errors-list"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-primary" onclick="App.closeModal('modal-import-errors')">Entendido</button>
+        <button class="btn-primary" onclick="App.closeModal('modal-import-errors')" data-text="modal.importErrors.understood"></button>
       </div>
     </div>
   </div>
@@ -584,20 +584,20 @@
   <div class="modal-overlay" id="modal-rename-tag" onclick="App.closeModal('modal-rename-tag')">
     <div class="modal modal-sm" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>✏️ Renombrar etiqueta</h2>
+        <h2>✏️ <span data-text="modal.renameTag.title"></span></h2>
         <button class="modal-close" onclick="App.closeModal('modal-rename-tag')">✕</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="rename-tag-id" />
-        <label>Nuevo nombre
-          <input type="text" id="rename-tag-input" placeholder="Nombre de la etiqueta..."
+        <label><span data-text="modal.renameTag.newName"></span>
+          <input type="text" id="rename-tag-input" data-placeholder="modal.renameTag.placeholder"
                  onkeydown="if(event.key==='Enter') App.confirmRenameTag()" />
         </label>
         <div id="rename-tag-preview" style="margin-top:0.8rem;min-height:1.5rem"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="App.closeModal('modal-rename-tag')">Cancelar</button>
-        <button class="btn-primary" onclick="App.confirmRenameTag()">Guardar</button>
+        <button class="btn-secondary" onclick="App.closeModal('modal-rename-tag')" data-text="modal.cancel"></button>
+        <button class="btn-primary" onclick="App.confirmRenameTag()" data-text="modal.save"></button>
       </div>
     </div>
   </div>
@@ -611,8 +611,8 @@
         <p id="confirm-submessage" style="font-size:0.8rem;color:var(--text3);margin-top:0.4rem"></p>
       </div>
       <div class="modal-footer" style="justify-content:center;gap:1rem">
-        <button class="btn-secondary" id="confirm-cancel-btn" onclick="App.confirmDialog.cancel()">Cancelar</button>
-        <button class="btn-danger" id="confirm-ok-btn" onclick="App.confirmDialog.accept()">Eliminar</button>
+        <button class="btn-secondary" id="confirm-cancel-btn" onclick="App.confirmDialog.cancel()" data-text="modal.cancel"></button>
+        <button class="btn-danger" id="confirm-ok-btn" onclick="App.confirmDialog.accept()" data-text="modal.confirm.delete"></button>
       </div>
     </div>
   </div>

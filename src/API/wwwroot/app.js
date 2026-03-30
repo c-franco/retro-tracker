@@ -11,6 +11,7 @@ let currentSellCost = 0;
 let lotItemCount = 0;
 let recentItems = [];
 let _currency = 'EUR';
+let _texts = {};
 
 // ── Paginación inventario ──
 let _invItems = [];
@@ -23,6 +24,39 @@ let _lotItems = [];
 let _lotPage  = 1;
 const _lotPageSizeKey = 'retro_lot_page_size';
 let _lotPageSize = parseInt(localStorage.getItem(_lotPageSizeKey)) || 10;
+
+function t(key, ...args) {
+  const template = _texts[key] ?? key;
+  return template.replace(/\{(\d+)\}/g, (_, index) => `${args[Number(index)] ?? ''}`);
+}
+
+function applyStaticTexts() {
+  document.title = t('meta.title');
+
+  document.querySelectorAll('[data-text]').forEach(el => {
+    el.textContent = t(el.dataset.text);
+  });
+
+  document.querySelectorAll('[data-text-html]').forEach(el => {
+    el.innerHTML = t(el.dataset.textHtml);
+  });
+
+  document.querySelectorAll('[data-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.placeholder);
+  });
+
+  document.querySelectorAll('[data-title]').forEach(el => {
+    el.title = t(el.dataset.title);
+  });
+}
+
+async function loadTexts() {
+  try {
+    _texts = await fetch(`${API}/resources`).then(r => r.json());
+  } catch {
+    _texts = {};
+  }
+}
 
 // ═══════════════════════════════════════════
 // SISTEMA DE ETIQUETAS
@@ -84,7 +118,7 @@ function populatePlatformSelects() {
   const filterSel = document.getElementById('filter-platform');
   if (filterSel) {
     const current = filterSel.value;
-    filterSel.innerHTML = '<option value="">Todas las plataformas</option>' + options;
+    filterSel.innerHTML = `<option value="">${t('inventory.allPlatforms')}</option>` + options;
     if (current) filterSel.value = current;
   }
 
@@ -152,6 +186,9 @@ function loadColToggles() {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
+  await loadTexts();
+  applyStaticTexts();
+
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
@@ -219,7 +256,7 @@ const V = {
 
   /** Texto no vacío */
   requireText(fieldEl, label = 'Este campo') {
-    if (!fieldEl.value.trim()) { V.error(fieldEl, `${label} es obligatorio`); return false; }
+    if (!fieldEl.value.trim()) { V.error(fieldEl, t('validation.required', label)); return false; }
     V.clear(fieldEl);
     return true;
   },
@@ -227,7 +264,7 @@ const V = {
   /** Número estrictamente > 0 */
   requirePositive(fieldEl, label = 'El valor') {
     const val = parseFloat(fieldEl.value);
-    if (isNaN(val) || val <= 0) { V.error(fieldEl, `${label} debe ser mayor que 0`); return false; }
+    if (isNaN(val) || val <= 0) { V.error(fieldEl, t('validation.positive', label)); return false; }
     V.clear(fieldEl);
     return true;
   },
@@ -235,7 +272,7 @@ const V = {
   /** Número >= 0 */
   requireNonNegative(fieldEl, label = 'El valor') {
     const val = parseFloat(fieldEl.value);
-    if (isNaN(val) || val < 0) { V.error(fieldEl, `${label} no puede ser negativo`); return false; }
+    if (isNaN(val) || val < 0) { V.error(fieldEl, t('validation.nonNegative', label)); return false; }
     V.clear(fieldEl);
     return true;
   },
@@ -243,11 +280,11 @@ const V = {
   /** Fecha válida y no futura */
   requireDate(fieldEl, label = 'La fecha') {
     const val = fieldEl.value;
-    if (!val) { V.error(fieldEl, `${label} es obligatoria`); return false; }
+    if (!val) { V.error(fieldEl, t('validation.dateRequired', label)); return false; }
     const d = new Date(val);
-    if (isNaN(d.getTime())) { V.error(fieldEl, `${label} no es válida`); return false; }
+    if (isNaN(d.getTime())) { V.error(fieldEl, t('validation.dateInvalid', label)); return false; }
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    if (d > tomorrow) { V.error(fieldEl, `${label} no puede ser futura`); return false; }
+    if (d > tomorrow) { V.error(fieldEl, t('validation.dateFuture', label)); return false; }
     V.clear(fieldEl);
     return true;
   },
@@ -327,9 +364,9 @@ const App = {
       document.getElementById('stat-profit').textContent      = fmt(data.totalProfit);
       document.getElementById('stat-balance').textContent     = fmt(data.currentBalance);
       document.getElementById('stat-stock-value').textContent = fmt(data.stockValue);
-      document.getElementById('stat-stock-count').textContent = `${data.stockItems} artículo${data.stockItems !== 1 ? 's' : ''}`;
+      document.getElementById('stat-stock-count').textContent = t('common.articleCount', data.stockItems, data.stockItems !== 1 ? 's' : '');
       document.getElementById('stat-collection-value').textContent = fmt(data.collectionValue);
-      document.getElementById('stat-collection-count').textContent = `${data.collectionItems} artículo${data.collectionItems !== 1 ? 's' : ''}`;
+      document.getElementById('stat-collection-count').textContent = t('common.articleCount', data.collectionItems, data.collectionItems !== 1 ? 's' : '');
 
       document.querySelector('.stat-card.profit .stat-value').style.color =
         data.totalProfit >= 0 ? 'var(--green)' : 'var(--red)';
@@ -479,7 +516,7 @@ const App = {
   renderPendingTable(items) {
     const tbody = document.querySelector('#pending-table tbody');
     if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:2rem">Sin artículos pendientes 🎉</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#555;padding:2rem">${t('dashboard.pending.empty')}</td></tr>`;
       return;
     }
     const today = new Date();
@@ -487,11 +524,11 @@ const App = {
       const days = Math.floor((today - new Date(item.purchaseDate)) / 86400000);
       return `<tr>
         <td><strong>${item.name}</strong></td>
-        <td>${item.platform || '—'}</td>
+        <td>${item.platform || t('common.none')}</td>
         <td>${typeBadge(item.type)}</td>
         <td class="neutral">${fmt(item.totalCost)}</td>
-        <td style="color:${days > 60 ? '#ff4444' : '#888'}">${days}d</td>
-        <td><button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})" title="Vender">💰</button></td>
+        <td style="color:${days > 60 ? '#ff4444' : '#888'}">${t('dashboard.daysShort', days)}</td>
+        <td><button class="btn-icon" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})" title="${t('common.sell')}">💰</button></td>
       </tr>`;
     }).join('');
   },
@@ -520,7 +557,7 @@ const App = {
       _invPage  = 1; // reset a primera página al cambiar filtros
       App.renderInventoryPage();
     } catch (e) {
-      App.toast('Error cargando inventario', 'error');
+      App.toast(t('inventory.loadError'), 'error');
     }
   },
 
@@ -579,14 +616,14 @@ const App = {
     }
 
     bar.innerHTML = `
-      <span class="pagination-info">${start}–${end} de ${total} artículos</span>
+      <span class="pagination-info">${t('inventory.pagination', start, end, total)}</span>
       <div class="pagination-controls">
         <button class="page-btn" onclick="App.goToPage(${_invPage - 1})" ${_invPage === 1 ? 'disabled' : ''}>‹</button>
         ${totalPages > 1 ? pages : ''}
         <button class="page-btn" onclick="App.goToPage(${_invPage + 1})" ${_invPage === totalPages ? 'disabled' : ''}>›</button>
       </div>
       <div class="pagination-right">
-        <label>Artículos por página
+        <label>${t('inventory.itemsPerPage')}
           <select id="page-size-select" onchange="App.onPageSizeChange()">
             <option value="10" ${_invPageSize === 10 ? 'selected' : ''}>10</option>
             <option value="15" ${_invPageSize === 15 ? 'selected' : ''}>15</option>
@@ -609,15 +646,15 @@ const App = {
     if (!dd) return;
     const active = App.getActiveTagFilters();
     if (!_allTags.length) {
-      dd.innerHTML = '<div class="tag-filter-empty">Sin etiquetas aún</div>';
+      dd.innerHTML = `<div class="tag-filter-empty">${t('inventory.noTagsYet')}</div>`;
       return;
     }
-    dd.innerHTML = _allTags.map(t =>
+    dd.innerHTML = _allTags.map(tag =>
       `<div class="tag-filter-option" onclick="this.querySelector('input').click();event.stopPropagation()">
-        <input type="checkbox" data-tag="${escapeHtml(t.name)}" ${active.includes(t.name) ? 'checked' : ''}
+        <input type="checkbox" data-tag="${escapeHtml(tag.name)}" ${active.includes(tag.name) ? 'checked' : ''}
                onchange="App.onTagFilterChange()" onclick="event.stopPropagation()" />
-        ${tagPillReadonly(t.name)}
-        <span style="color:var(--text3);font-size:0.72rem;margin-left:auto">${t.itemCount}</span>
+        ${tagPillReadonly(tag.name)}
+        <span style="color:var(--text3);font-size:0.72rem;margin-left:auto">${tag.itemCount}</span>
       </div>`
     ).join('');
   },
@@ -671,45 +708,45 @@ const App = {
   renderInventoryTable(items) {
     const tbody = document.querySelector('#inventory-table tbody');
     if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#555;padding:2rem">Sin artículos</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#555;padding:2rem">${t('inventory.empty')}</td></tr>`;
       return;
     }
     tbody.innerHTML = items.map(item => {
       const profit = item.profit !== null
         ? `<span class="${item.profit >= 0 ? 'positive' : 'negative'}">${fmt(item.profit)}</span>`
-        : '<span class="neutral">—</span>';
+        : `<span class="neutral">${t('common.none')}</span>`;
       const collectionBadge = item.isCollection
         ? '<span class="badge badge-collection">⭐</span>&nbsp;'
         : '';
       return `<tr class="${item.isSold ? 'row-sold' : item.isCollection ? 'row-collection' : ''}">
         <td>${collectionBadge}<strong>${escapeHtml(item.name)}</strong></td>
         <td class="inv-col-tipo">${typeBadge(item.type)}</td>
-        <td class="inv-col-plataforma"><span class="badge">${item.platform || '—'}</span></td>
+        <td class="inv-col-plataforma"><span class="badge">${item.platform || t('common.none')}</span></td>
         <td class="inv-col-estado">${condBadge(item.condition)}</td>
         <td class="inv-col-lote">${item.lotId
-          ? `<span class="badge badge-lot-code" style="cursor:pointer" onclick="App.openLotDetail(${item.lotId})" title="Ver lote ${escapeHtml(item.lotCode||'')}">${escapeHtml(item.lotCode || item.lotName || '—')}</span>`
-          : '<span style="color:#555">—</span>'}</td>
+          ? `<span class="badge badge-lot-code" style="cursor:pointer" onclick="App.openLotDetail(${item.lotId})" title="${escapeHtml(t('common.viewLot', item.lotCode || ''))}">${escapeHtml(item.lotCode || item.lotName || t('common.none'))}</span>`
+          : `<span style="color:#555">${t('common.none')}</span>`}</td>
         <td class="inv-col-etiquetas">
           <div class="tags-cell">
-            ${(item.tags || []).map(tagPillReadonly).join('') || '<span style="color:var(--text3)">—</span>'}
+            ${(item.tags || []).map(tagPillReadonly).join('') || `<span style="color:var(--text3)">${t('common.none')}</span>`}
           </div>
         </td>
         <td class="inv-col-coste neutral">${fmt(item.totalCost)}</td>
-        <td class="inv-col-venta">${item.salePrice ? fmt(item.salePrice) : '<span style="color:#555">—</span>'}</td>
+        <td class="inv-col-venta">${item.salePrice ? fmt(item.salePrice) : `<span style="color:#555">${t('common.none')}</span>`}</td>
         <td class="inv-col-beneficio">${profit}</td>
         <td class="inv-col-fecha neutral" style="font-size:0.78rem">${fmtDate(item.purchaseDate)}</td>
         <td>
           <div style="display:flex;gap:4px">
             ${!item.isSold && !item.isCollection
-              ? `<button class="btn-icon" title="Vender" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
-              : item.isSold ? `<button class="btn-icon" title="Deshacer venta" onclick="App.unsell(${item.id})">↩️</button>` : ''
+              ? `<button class="btn-icon" title="${t('common.sell')}" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`
+              : item.isSold ? `<button class="btn-icon" title="${t('common.unsell')}" onclick="App.unsell(${item.id})">↩️</button>` : ''
             }
             ${!item.isSold
-              ? `<button class="btn-icon" title="${item.isCollection ? 'Mover a stock' : 'Mover a colección'}" onclick="App.toggleCollection(${item.id},${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>`
+              ? `<button class="btn-icon" title="${item.isCollection ? t('common.moveToStock') : t('common.moveToCollection')}" onclick="App.toggleCollection(${item.id},${item.isCollection})">${item.isCollection ? '📦' : '⭐'}</button>`
               : ''
             }
-            <button class="btn-icon" title="Editar"   onclick="App.openItemModal(${item.id})">✏️</button>
-            <button class="btn-icon" title="Eliminar" onclick="App.deleteItem(${item.id})">🗑️</button>
+            <button class="btn-icon" title="${t('common.edit')}"   onclick="App.openItemModal(${item.id})">✏️</button>
+            <button class="btn-icon" title="${t('common.delete')}" onclick="App.deleteItem(${item.id})">🗑️</button>
           </div>
         </td>
       </tr>`;
@@ -721,13 +758,13 @@ const App = {
 
   async openItemModal(itemId = null) {
     currentItemId = itemId;
-    document.getElementById('modal-item-title').textContent = itemId ? 'Editar Artículo' : 'Añadir Artículo';
+    document.getElementById('modal-item-title').textContent = itemId ? t('modal.item.editTitle') : t('modal.item.addTitle');
     V.clearAll(document.getElementById('modal-item'));
 
 
     const lots = await App.get('/lots');
     const lotSel = document.getElementById('item-lot-id');
-    lotSel.innerHTML = '<option value="">Sin lote</option>' +
+    lotSel.innerHTML = `<option value="">${t('common.noLot')}</option>` +
       lots.map(l => `<option value="${l.id}">${escapeHtml(l.name)}</option>`).join('');
 
     if (itemId) {
@@ -770,11 +807,11 @@ const App = {
 
     const platformEl = document.getElementById('item-platform');
     let ok = true;
-    ok = V.requireText(nameEl,         'El nombre')             && ok;
-    ok = V.requireText(platformEl,     'La plataforma')         && ok;
-    ok = V.requirePositive(priceEl,    'El precio de compra')   && ok;
-    ok = V.requireNonNegative(shipEl,  'Los gastos de envío')   && ok;
-    ok = V.requireDate(dateEl,         'La fecha de compra')    && ok;
+    ok = V.requireText(nameEl,         t('form.name'))          && ok;
+    ok = V.requireText(platformEl,     t('form.platform'))      && ok;
+    ok = V.requirePositive(priceEl,    t('form.purchasePrice')) && ok;
+    ok = V.requireNonNegative(shipEl,  t('form.shippingCost'))  && ok;
+    ok = V.requireDate(dateEl,         t('form.purchaseDate'))  && ok;
     if (!ok) return null;
 
     return {
@@ -797,14 +834,14 @@ const App = {
     if (!body) return;
     const id = document.getElementById('item-id').value;
     try {
-      if (id) { await App.put(`/items/${id}`, body);  App.toast('Artículo actualizado ✅'); }
-      else    { await App.post('/items', body);         App.toast('Artículo añadido ✅'); }
+      if (id) { await App.put(`/items/${id}`, body);  App.toast(t('inventory.itemUpdated')); }
+      else    { await App.post('/items', body);         App.toast(t('inventory.itemAdded')); }
       App.closeModal('modal-item');
       await loadTagsCache();
       App.populateTagFilter();
       App.loadInventory();
     } catch (e) {
-      App.toast('Error guardando artículo', 'error');
+      App.toast(t('inventory.saveError'), 'error');
     }
   },
 
@@ -818,7 +855,7 @@ const App = {
     document.getElementById('sell-date').value      = new Date().toISOString().split('T')[0];
     currentSellCost = cost;
     document.getElementById('sell-profit-preview').innerHTML =
-      `<span class="neutral">Coste total: ${fmt(cost)}</span>`;
+      `<span class="neutral">${t('common.costTotal', fmt(cost))}</span>`;
     V.watch(document.getElementById('sell-price'));
     V.watch(document.getElementById('sell-date'));
     App.openModal('modal-sell');
@@ -829,21 +866,21 @@ const App = {
     const profit = price - currentSellCost;
     const cls = profit >= 0 ? 'positive' : 'negative';
     document.getElementById('sell-profit-preview').innerHTML =
-      `Beneficio estimado: <span class="${cls}">${fmt(profit)}</span>`;
+      `${t('common.estimatedProfit', `<span class="${cls}">${fmt(profit)}</span>`)}`;
   },
 
   async confirmSell() {
     const priceEl = document.getElementById('sell-price');
     const dateEl  = document.getElementById('sell-date');
     let ok = true;
-    ok = V.requirePositive(priceEl, 'El precio de venta') && ok;
-    ok = V.requireDate(dateEl,      'La fecha de venta')  && ok;
+    ok = V.requirePositive(priceEl, t('form.salePrice')) && ok;
+    ok = V.requireDate(dateEl,      t('form.saleDate'))  && ok;
     if (!ok) return;
 
     const id = document.getElementById('sell-item-id').value;
     try {
       await App.post(`/items/${id}/sell`, { salePrice: parseFloat(priceEl.value), saleDate: dateEl.value });
-      App.toast('Venta registrada 💰');
+      App.toast(t('inventory.saleRegistered'));
       App.closeModal('modal-sell');
 
       // Callback opcional desde el popup de detalle de lote
@@ -856,53 +893,53 @@ const App = {
         App.loadLots();
       }
     } catch (e) {
-      App.toast('Error registrando venta', 'error');
+      App.toast(t('inventory.sellError'), 'error');
     }
   },
 
   async unsell(id) {
     const ok = await App.confirmDialog.show({
-      message: '¿Deshacer la venta de este artículo?',
-      submessage: 'El artículo volverá a estar en stock.',
+      message: t('inventory.confirmUnsell'),
+      submessage: t('inventory.confirmUnsellDetail'),
       icon: '↩️',
-      okLabel: 'Deshacer venta',
+      okLabel: t('common.unsell'),
       okClass: 'btn-secondary'
     });
     if (!ok) return;
     try {
       await App.post(`/items/${id}/unsell`, {});
-      App.toast('Venta deshecha ↩️');
+      App.toast(t('inventory.saleReverted'));
       App.loadInventory();
     } catch (e) {
-      App.toast('Error deshaciendo venta', 'error');
+      App.toast(t('inventory.unsellError'), 'error');
     }
   },
 
   async toggleCollection(id, currentValue) {
     try {
       await App.put(`/items/${id}`, { isCollection: !currentValue });
-      App.toast(!currentValue ? '⭐ Movido a colección' : '📦 Movido a stock');
+      App.toast(!currentValue ? t('inventory.movedToCollection') : t('inventory.movedToStock'));
       App.loadInventory();
     } catch (e) {
-      App.toast('Error actualizando artículo', 'error');
+      App.toast(t('inventory.updateError'), 'error');
     }
   },
 
   async deleteItem(id) {
     const ok = await App.confirmDialog.show({
-      message: '¿Eliminar este artículo?',
-      submessage: 'Esta acción no se puede deshacer.',
+      message: t('inventory.confirmDeleteItem'),
+      submessage: t('inventory.confirmDeleteDetail'),
       icon: '🗑️',
-      okLabel: 'Eliminar',
+      okLabel: t('common.delete'),
       okClass: 'btn-danger'
     });
     if (!ok) return;
     try {
       await App.delete(`/items/${id}`);
-      App.toast('Artículo eliminado 🗑️');
+      App.toast(t('inventory.itemDeleted'));
       App.loadInventory();
     } catch (e) {
-      App.toast('Error eliminando artículo', 'error');
+      App.toast(t('inventory.deleteError'), 'error');
     }
   },
 
@@ -943,7 +980,7 @@ const App = {
       _lotPage = 1;
       App.renderLotsPage(allLots.length);
     } catch (e) {
-      App.toast('Error cargando lotes', 'error');
+      App.toast(t('lots.loadError'), 'error');
     }
   },
 
@@ -978,8 +1015,8 @@ const App = {
 
     if (!lots.length) {
       const msg = (totalAll !== undefined ? totalAll : _lotItems.length) === 0
-        ? 'No hay lotes. ¡Crea el primero!'
-        : 'Sin lotes para los filtros seleccionados';
+        ? t('lots.empty')
+        : t('lots.emptyFiltered');
       tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#555;padding:2rem">${msg}</td></tr>`;
       return;
     }
@@ -991,12 +1028,12 @@ const App = {
         <td><span class="badge badge-lot-code">${escapeHtml(lot.code)}</span></td>
         <td class="neutral" style="font-size:0.78rem;white-space:nowrap">${fmtDate(lot.purchaseDate)}</td>
         <td style="font-weight:600">${escapeHtml(lot.name)}</td>
-        <td class="neutral" style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${lot.notes ? escapeHtml(lot.notes) : '<span style="color:#555">—</span>'}</td>
+        <td class="neutral" style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis">${lot.notes ? escapeHtml(lot.notes) : `<span style="color:#555">${t('common.none')}</span>`}</td>
         <td>
           <div class="lots-progress">
             <span>${lot.totalItems}</span>
             <div class="lots-progress-bar"><div class="lots-progress-fill" style="width:${pct}%"></div></div>
-            <span style="font-size:0.72rem;color:var(--text3)">${lot.soldItems} vend.</span>
+            <span style="font-size:0.72rem;color:var(--text3)">${t('lots.soldShort', lot.soldItems)}</span>
           </div>
         </td>
         <td class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(lot.totalCost)}</td>
@@ -1004,8 +1041,8 @@ const App = {
         <td class="${profitCls}" style="font-family:var(--font-mono);font-size:0.82rem">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</td>
         <td>
           <div style="display:flex;gap:3px;align-items:center">
-            <button class="btn-sm" onclick="App.openLotDetail(${lot.id})">Ver detalle</button>
-            <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="Eliminar">🗑️</button>
+            <button class="btn-sm" onclick="App.openLotDetail(${lot.id})">${t('lots.viewDetail')}</button>
+            <button class="btn-icon" onclick="App.deleteLot(${lot.id})" title="${t('common.delete')}">🗑️</button>
           </div>
         </td>
       </tr>`;
@@ -1039,14 +1076,14 @@ const App = {
     }
 
     bar.innerHTML = `
-      <span class="pagination-info">${start}–${end} de ${total} lotes</span>
+      <span class="pagination-info">${t('lots.pagination', start, end, total)}</span>
       <div class="pagination-controls">
         <button class="page-btn" onclick="App.goToLotPage(${_lotPage - 1})" ${_lotPage === 1 ? 'disabled' : ''}>‹</button>
         ${totalPages > 1 ? pages : ''}
         <button class="page-btn" onclick="App.goToLotPage(${_lotPage + 1})" ${_lotPage === totalPages ? 'disabled' : ''}>›</button>
       </div>
       <div class="pagination-right">
-        <label>Lotes por página
+        <label>${t('lots.itemsPerPage')}
           <select id="lot-page-size-select" onchange="App.onLotPageSizeChange()">
             <option value="10" ${_lotPageSize === 10 ? 'selected' : ''}>10</option>
             <option value="15" ${_lotPageSize === 15 ? 'selected' : ''}>15</option>
@@ -1067,7 +1104,7 @@ const App = {
       App._renderLotDetail(lot);
       App.openModal('modal-lot-detail');
     } catch (e) {
-      App.toast('Error cargando detalle del lote', 'error');
+      App.toast(t('lots.detailLoadError'), 'error');
     }
   },
 
@@ -1090,30 +1127,30 @@ const App = {
       <div class="lot-detail-stat-grid">
         <div class="lot-detail-stat">
           <span class="lot-detail-stat-val neutral">${fmt(lot.totalCost)}</span>
-          <span class="lot-detail-stat-lbl">Invertido</span>
+          <span class="lot-detail-stat-lbl">${t('lots.detail.invested')}</span>
         </div>
         <div class="lot-detail-stat">
           <span class="lot-detail-stat-val" style="color:var(--accent3)">${fmt(lot.totalRevenue)}</span>
-          <span class="lot-detail-stat-lbl">Recuperado</span>
+          <span class="lot-detail-stat-lbl">${t('lots.detail.recovered')}</span>
         </div>
         <div class="lot-detail-stat">
           <span class="lot-detail-stat-val ${profitCls}">${lot.totalProfit >= 0 ? '+' : ''}${fmt(lot.totalProfit)}</span>
-          <span class="lot-detail-stat-lbl">Beneficio</span>
+          <span class="lot-detail-stat-lbl">${t('lots.detail.profit')}</span>
         </div>
         <div class="lot-detail-stat">
           <span class="lot-detail-stat-val">${lot.soldItems} / ${lot.totalItems}</span>
-          <span class="lot-detail-stat-lbl">Vendidos</span>
+          <span class="lot-detail-stat-lbl">${t('lots.detail.sold')}</span>
         </div>
         <div class="lot-detail-stat">
           <span class="lot-detail-stat-val">${lot.stockItems}</span>
-          <span class="lot-detail-stat-lbl">En stock</span>
+          <span class="lot-detail-stat-lbl">${t('lots.detail.inStock')}</span>
         </div>
       </div>`;
 
     // Listado de artículos
     const container = document.getElementById('lot-detail-items');
     if (!lot.items.length) {
-      container.innerHTML = '<p style="color:#555;font-size:0.85rem;padding:0.5rem">Sin artículos en este lote.</p>';
+      container.innerHTML = `<p style="color:#555;font-size:0.85rem;padding:0.5rem">${t('lots.detail.empty')}</p>`;
       return;
     }
     container.innerHTML = lot.items.map(item => {
@@ -1121,11 +1158,11 @@ const App = {
 
       let actions = '';
       if (item.isSold) {
-        actions = `<button class="btn-icon" title="Deshacer venta" onclick="App.unsellFromDetail(${item.id})">↩️</button>`;
+        actions = `<button class="btn-icon" title="${t('common.unsell')}" onclick="App.unsellFromDetail(${item.id})">↩️</button>`;
       } else if (item.isCollection) {
-        actions = `<button class="btn-icon" title="Mover a stock" onclick="App.toggleCollectionFromDetail(${item.id}, true)">📦</button>`;
+        actions = `<button class="btn-icon" title="${t('common.moveToStock')}" onclick="App.toggleCollectionFromDetail(${item.id}, true)">📦</button>`;
       } else {
-        actions = `<button class="btn-icon" title="Vender" onclick="App.openSellModalFromDetail(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`;
+        actions = `<button class="btn-icon" title="${t('common.sell')}" onclick="App.openSellModalFromDetail(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰</button>`;
       }
 
       const collectionBadge = item.isCollection && !item.isSold
@@ -1139,7 +1176,7 @@ const App = {
           <span class="neutral" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(item.totalCost)}</span>
           ${item.isSold ? `<span class="positive" style="font-family:var(--font-mono);font-size:0.82rem">${fmt(item.salePrice)}</span>` : ''}
           ${actions}
-          <button class="btn-icon" title="Quitar del lote" onclick="App.removeItemFromLot(${item.id})">🗑️</button>
+          <button class="btn-icon" title="${t('lots.removeFromLot')}" onclick="App.removeItemFromLot(${item.id})">🗑️</button>
         </span>
       </div>`;
     }).join('');
@@ -1157,46 +1194,46 @@ const App = {
   },
 
   async unsellFromDetail(itemId) {
-    if (!confirm('¿Deshacer la venta de este artículo?')) return;
+    if (!confirm(t('inventory.confirmUnsell'))) return;
     try {
       await App.post(`/items/${itemId}/unsell`, {});
-      App.toast('Venta deshecha ↩️');
+      App.toast(t('inventory.saleReverted'));
       const lot = await App.get(`/lots/${App._currentLotId}`);
       App._renderLotDetail(lot);
       App.loadLots();
     } catch (e) {
-      App.toast('Error deshaciendo venta', 'error');
+      App.toast(t('inventory.unsellError'), 'error');
     }
   },
 
   async toggleCollectionFromDetail(itemId, currentIsCollection) {
     try {
       await App.put(`/items/${itemId}`, { isCollection: !currentIsCollection });
-      App.toast(!currentIsCollection ? '⭐ Movido a colección' : '📦 Movido a stock');
+      App.toast(!currentIsCollection ? t('inventory.movedToCollection') : t('inventory.movedToStock'));
       const lot = await App.get(`/lots/${App._currentLotId}`);
       App._renderLotDetail(lot);
     } catch (e) {
-      App.toast('Error actualizando artículo', 'error');
+      App.toast(t('inventory.updateError'), 'error');
     }
   },
 
   async removeItemFromLot(itemId) {
     const ok = await App.confirmDialog.show({
-      message: '¿Quitar este artículo del lote?',
-      submessage: 'El artículo permanecerá en el inventario sin lote asignado.',
+      message: t('lots.removeFromLotConfirm'),
+      submessage: t('lots.removeFromLotDetail'),
       icon: '🗑️',
-      okLabel: 'Quitar del lote',
+      okLabel: t('lots.removeFromLot'),
       okClass: 'btn-danger'
     });
     if (!ok) return;
     try {
       await App.put(`/items/${itemId}`, { unlinkLot: true });
-      App.toast('Artículo desvinculado del lote');
+      App.toast(t('lots.removeFromLotSuccess'));
       const lot = await App.get(`/lots/${App._currentLotId}`);
       App._renderLotDetail(lot);
       App.loadLots();
     } catch (e) {
-      App.toast('Error al quitar el artículo', 'error');
+      App.toast(t('lots.removeFromLotError'), 'error');
     }
   },
 
@@ -1244,15 +1281,15 @@ const App = {
       <label style="font-size:0.78rem">Nombre *
         <input type="text" placeholder="Ej: Nintendo DSi" data-field="name" />
       </label>
-      <label style="font-size:0.78rem">Tipo
+      <label style="font-size:0.78rem">${t('form.type')}
         <select data-field="type">
-          <option value="Console">Consola</option>
-          <option value="VideoGame">Juego</option>
-          <option value="Accessory">Accesorio</option>
+          <option value="Console">${t('inventory.type.console')}</option>
+          <option value="VideoGame">${t('status.game')}</option>
+          <option value="Accessory">${t('inventory.type.accessory')}</option>
         </select>
       </label>
       <label style="font-size:0.78rem">Plataforma *
-        <select data-field="platform"><option value="">— Selecciona —</option></select>
+        <select data-field="platform"><option value="">${t('common.selectOption')}</option></select>
       </label>
       <label style="font-size:0.78rem">Precio (€)
         <input type="number" step="0.01" min="0" placeholder="0.00" data-field="price"
@@ -1276,19 +1313,19 @@ const App = {
     const totalPrice    = parseFloat(document.getElementById('lot-price').value) || 0;
     const totalShipping = parseFloat(document.getElementById('lot-shipping').value) || 0;
     const rows = document.querySelectorAll('#lot-items-list .lot-item-form-row');
-    if (!rows.length) { document.getElementById("lot-total-info").innerHTML = "<strong>Total artículos: 0</strong>"; return; }
+    if (!rows.length) { document.getElementById("lot-total-info").innerHTML = `<strong>${t('lots.totalItems', 0)}</strong>`; return; }
 
     const priceSum = Array.from(rows)
       .map(r => parseFloat(r.querySelector('[data-field="price"]')?.value) || 0)
       .reduce((a, b) => a + b, 0);
 
-    let info = `<strong>Total artículos: ${rows.length}</strong>`;
+    let info = `<strong>${t('lots.totalItems', rows.length)}</strong>`;
     if (priceSum > 0 && Math.abs(priceSum - totalPrice) > 0.01) {
-      info += ` — <span style="color:#ff4444">⚠️ Suma: ${fmt(priceSum)} ≠ total: ${fmt(totalPrice)}</span>`;
+      info += ` — <span style="color:#ff4444">${t('lots.sumMismatch', fmt(priceSum), fmt(totalPrice))}</span>`;
     } else if (priceSum === 0 && totalPrice > 0) {
       const perItem = Math.round(totalPrice    / rows.length * 100) / 100;
       const perShip = Math.round(totalShipping / rows.length * 100) / 100;
-      info += ` — Reparto equitativo: ${fmt(perItem)}/art + ${fmt(perShip)}/envío`;
+      info += ` — ${t('lots.evenSplit', fmt(perItem), fmt(perShip))}`;
     }
     document.getElementById('lot-total-info').innerHTML = info;
   },
@@ -1300,23 +1337,23 @@ const App = {
     const dateEl  = document.getElementById('lot-date');
 
     let ok = true;
-    ok = V.requireText(nameEl,         'El nombre del lote') && ok;
-    ok = V.requireNonNegative(priceEl, 'El precio total')    && ok;
-    ok = V.requireNonNegative(shipEl,  'El envío total')     && ok;
-    ok = V.requireDate(dateEl,         'La fecha')           && ok;
+    ok = V.requireText(nameEl,         t('form.lotName'))       && ok;
+    ok = V.requireNonNegative(priceEl, t('form.totalPrice'))    && ok;
+    ok = V.requireNonNegative(shipEl,  t('form.totalShipping')) && ok;
+    ok = V.requireDate(dateEl,         t('form.date'))          && ok;
 
     const rows = document.querySelectorAll('#lot-items-list .lot-item-form-row');
-    if (!rows.length) { App.toast('Añade al menos un artículo al lote', 'error'); ok = false; }
+    if (!rows.length) { App.toast(t('lots.addAtLeastOne'), 'error'); ok = false; }
 
     rows.forEach(row => {
       const n = row.querySelector('[data-field="name"]');
       const p = row.querySelector('[data-field="price"]');
       const s = row.querySelector('[data-field="shipping"]');
       const pl = row.querySelector('[data-field="platform"]');
-      if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
-      if (!pl.value.trim()) { V.error(pl, 'Plataforma obligatoria'); ok = false; }
-      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
-      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
+      if (!n.value.trim()) { V.error(n, t('validation.invalidName')); ok = false; }
+      if (!pl.value.trim()) { V.error(pl, t('validation.invalidPlatform')); ok = false; }
+      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, t('validation.invalidPrice')); ok = false; }
+      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, t('validation.invalidShipping'));  ok = false; }
     });
 
     if (!ok) return null;
@@ -1345,11 +1382,11 @@ const App = {
     if (!result) return;
     try {
       await App.post('/lots', result.body);
-      App.toast('Lote creado 🎁');
+      App.toast(t('lots.createSuccess'));
       App.closeModal('modal-lot');
       App.loadLots();
     } catch (e) {
-      App.toast('Error creando lote', 'error');
+      App.toast(t('lots.createError'), 'error');
     }
   },
 
@@ -1369,8 +1406,8 @@ const App = {
     const nameEl = document.getElementById('edit-lot-name');
     const dateEl = document.getElementById('edit-lot-date');
     let ok = true;
-    ok = V.requireText(nameEl, 'El nombre') && ok;
-    ok = V.requireDate(dateEl, 'La fecha')  && ok;
+    ok = V.requireText(nameEl, t('form.name')) && ok;
+    ok = V.requireDate(dateEl, t('form.date')) && ok;
     if (!ok) return;
 
     const id = document.getElementById('edit-lot-id').value;
@@ -1380,7 +1417,7 @@ const App = {
         notes:        document.getElementById('edit-lot-notes').value.trim(),
         purchaseDate: dateEl.value || null
       });
-      App.toast('Lote actualizado ✅');
+      App.toast(t('lots.updateSuccess'));
       App.closeModal('modal-edit-lot');
       App.loadLots();
       // Si el popup de detalle estaba abierto, refrescarlo
@@ -1389,7 +1426,7 @@ const App = {
         App._renderLotDetail(lot);
       }
     } catch (e) {
-      App.toast('Error actualizando lote', 'error');
+      App.toast(t('lots.updateError'), 'error');
     }
   },
 
@@ -1399,7 +1436,7 @@ const App = {
     V.clearAll(document.getElementById('modal-add-to-lot'));
 
     document.getElementById('add-to-lot-id').value = lotId;
-    document.getElementById('add-to-lot-subtitle').textContent = `Lote: ${lotName}`;
+    document.getElementById('add-to-lot-subtitle').textContent = t('common.lotLabel', lotName);
     document.getElementById('add-to-lot-items-list').innerHTML = '';
     App._addToLotCount = 0;
     App.addItemToLotForm();
@@ -1414,24 +1451,24 @@ const App = {
     row.className = 'lot-item-form-row';
     row.id = `atl-item-${idx}`;
     row.innerHTML = `
-      <label style="font-size:0.78rem">Nombre *
-        <input type="text" placeholder="Ej: Nintendo DS Lite" data-field="name" />
+      <label style="font-size:0.78rem">${t('form.name')} *
+        <input type="text" placeholder="${t('quickAdd.namePlaceholder')}" data-field="name" />
       </label>
-      <label style="font-size:0.78rem">Tipo
+      <label style="font-size:0.78rem">${t('form.type')}
         <select data-field="type">
-          <option value="Console">Consola</option>
-          <option value="VideoGame">Juego</option>
-          <option value="Accessory">Accesorio</option>
+          <option value="Console">${t('inventory.type.console')}</option>
+          <option value="VideoGame">${t('status.game')}</option>
+          <option value="Accessory">${t('inventory.type.accessory')}</option>
         </select>
       </label>
       <label style="font-size:0.78rem">Plataforma *
-        <select data-field="platform"><option value="">— Selecciona —</option></select>
+        <select data-field="platform"><option value="">${t('common.selectOption')}</option></select>
       </label>
-      <label style="font-size:0.78rem">Condición
+      <label style="font-size:0.78rem">${t('form.condition')}
         <select data-field="condition">
-          <option value="Used">Usado</option>
-          <option value="New">Nuevo</option>
-          <option value="NeedsRepair">Reparar</option>
+          <option value="Used">${t('status.used')}</option>
+          <option value="New">${t('status.new')}</option>
+          <option value="NeedsRepair">${t('status.needsRepair')}</option>
         </select>
       </label>
       <label style="font-size:0.78rem">Precio (€)
@@ -1453,7 +1490,7 @@ const App = {
   async saveAddToLot() {
     const lotId = document.getElementById('add-to-lot-id').value;
     const rows  = document.querySelectorAll('#add-to-lot-items-list .lot-item-form-row');
-    if (!rows.length) { App.toast('Añade al menos un artículo', 'error'); return; }
+    if (!rows.length) { App.toast(t('lots.addAtLeastOneItem'), 'error'); return; }
 
     let ok = true;
     rows.forEach(row => {
@@ -1461,10 +1498,10 @@ const App = {
       const p = row.querySelector('[data-field="price"]');
       const s = row.querySelector('[data-field="shipping"]');
       const pl = row.querySelector('[data-field="platform"]');
-      if (!n.value.trim()) { V.error(n, 'Nombre obligatorio'); ok = false; }
-      if (!pl.value.trim()) { V.error(pl, 'Plataforma obligatoria'); ok = false; }
-      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, 'Precio inválido'); ok = false; }
-      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, 'Envío inválido');  ok = false; }
+      if (!n.value.trim()) { V.error(n, t('validation.invalidName')); ok = false; }
+      if (!pl.value.trim()) { V.error(pl, t('validation.invalidPlatform')); ok = false; }
+      if (isNaN(parseFloat(p.value)) || parseFloat(p.value) < 0) { V.error(p, t('validation.invalidPrice')); ok = false; }
+      if (isNaN(parseFloat(s.value)) || parseFloat(s.value) < 0) { V.error(s, t('validation.invalidShipping'));  ok = false; }
     });
     if (!ok) return;
 
@@ -1479,7 +1516,7 @@ const App = {
 
     try {
       await App.post(`/lots/${lotId}/items`, { items });
-      App.toast(`✅ ${items.length} artículo(s) añadido(s) al lote`);
+      App.toast(t('lots.addToLotSuccess', items.length));
       App.closeModal('modal-add-to-lot');
       App.loadLots();
       // Refrescar popup de detalle si está abierto para este lote
@@ -1488,25 +1525,25 @@ const App = {
         App._renderLotDetail(lot);
       }
     } catch (e) {
-      App.toast('Error añadiendo artículos', 'error');
+      App.toast(t('lots.addToLotError'), 'error');
     }
   },
 
   async deleteLot(id) {
     const ok = await App.confirmDialog.show({
-      message: '¿Eliminar el lote y todos sus artículos?',
-      submessage: 'Esta acción no se puede deshacer.',
+      message: t('lots.deleteConfirm'),
+      submessage: t('inventory.confirmDeleteDetail'),
       icon: '🎁',
-      okLabel: 'Eliminar lote',
+      okLabel: t('modal.confirm.delete'),
       okClass: 'btn-danger'
     });
     if (!ok) return;
     try {
       await App.delete(`/lots/${id}`);
-      App.toast('Lote eliminado');
+      App.toast(t('lots.deleteSuccess'));
       App.loadLots();
     } catch (e) {
-      App.toast('No se puede eliminar: hay artículos vendidos', 'error');
+      App.toast(t('lots.deleteErrorSoldItems'), 'error');
     }
   },
 
@@ -1520,11 +1557,11 @@ const App = {
     const dateEl     = document.getElementById('qa-date');
 
     let ok = true;
-    ok = V.requireText(nameEl,         'El nombre')           && ok;
-    ok = V.requireText(platformEl,     'La plataforma')       && ok;
-    ok = V.requirePositive(priceEl,    'El precio de compra') && ok;
-    ok = V.requireNonNegative(shipEl,  'Los gastos de envío') && ok;
-    ok = V.requireDate(dateEl,         'La fecha de compra')  && ok;
+    ok = V.requireText(nameEl,         t('form.name'))          && ok;
+    ok = V.requireText(platformEl,     t('form.platform'))      && ok;
+    ok = V.requirePositive(priceEl,    t('form.purchasePrice')) && ok;
+    ok = V.requireNonNegative(shipEl,  t('form.shippingCost'))  && ok;
+    ok = V.requireDate(dateEl,         t('form.purchaseDate'))  && ok;
     if (!ok) return null;
 
     return {
@@ -1546,12 +1583,12 @@ const App = {
     if (!item) return;
     try {
       const created = await App.post('/items', item);
-      App.toast(`✅ ${created.name} añadido`);
+      App.toast(t('quickAdd.added', created.name));
       App.clearQuickForm();
       await loadTagsCache();
       App.loadRecentItems();
     } catch (e) {
-      App.toast('Error al añadir', 'error');
+      App.toast(t('quickAdd.addError'), 'error');
     }
   },
 
@@ -1559,22 +1596,22 @@ const App = {
     const item = App._validateQuickForm();
     if (!item) return;
 
-    const salePriceStr = prompt('¿Precio de venta? (€)');
+    const salePriceStr = prompt(t('quickAdd.askSalePrice'));
     if (salePriceStr === null) return;
     const salePrice = parseFloat(salePriceStr);
     if (isNaN(salePrice) || salePrice <= 0) {
-      App.toast('El precio de venta debe ser mayor que 0', 'error');
+      App.toast(t('quickAdd.salePriceInvalid'), 'error');
       return;
     }
     try {
       const created = await App.post('/items', item);
       await App.post(`/items/${created.id}/sell`, { salePrice, saleDate: item.purchaseDate });
-      App.toast(`✅ ${created.name} añadido y vendido`);
+      App.toast(t('quickAdd.addedAndSold', created.name));
       App.clearQuickForm();
       await loadTagsCache();
       App.loadRecentItems();
     } catch (e) {
-      App.toast('Error', 'error');
+      App.toast(t('quickAdd.genericError'), 'error');
     }
   },
 
@@ -1606,9 +1643,9 @@ const App = {
           <strong>${escapeHtml(item.name)}</strong>
           <span class="badge">${item.platform || '?'}</span>
           <span class="neutral">${fmt(item.totalCost)}</span>
-          <button class="btn-sm" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰 Vender</button>
+          <button class="btn-sm" onclick="App.openSellModal(${item.id},'${escapeHtml(item.name)}',${item.totalCost})">💰 ${t('common.sell')}</button>
         </div>
-      `).join('') || '<p style="color:#555">Sin artículos en stock</p>';
+      `).join('') || `<p style="color:#555">${t('quickAdd.noItemsInStock')}</p>`;
     } catch (e) {}
   },
 
@@ -1632,12 +1669,12 @@ const App = {
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
-      list.innerHTML = _allTags.map(t => `
-        <div class="settings-tag-row" id="settings-tag-${t.id}">
-          ${tagPillReadonly(t.name)}
-          <span class="tag-count">${t.itemCount} artículo${t.itemCount !== 1 ? 's' : ''}</span>
-          <button class="btn-icon" title="Renombrar" onclick="App.renameTag(${t.id},'${escapeHtml(t.name)}')">✏️</button>
-          <button class="btn-icon" title="Eliminar"  onclick="App.deleteTag(${t.id},'${escapeHtml(t.name)}')">🗑️</button>
+      list.innerHTML = _allTags.map(tag => `
+        <div class="settings-tag-row" id="settings-tag-${tag.id}">
+          ${tagPillReadonly(tag.name)}
+          <span class="tag-count">${t('common.articleCount', tag.itemCount, tag.itemCount !== 1 ? 's' : '')}</span>
+          <button class="btn-icon" title="${t('common.rename')}" onclick="App.renameTag(${tag.id},'${escapeHtml(tag.name)}')">✏️</button>
+          <button class="btn-icon" title="${t('common.delete')}"  onclick="App.deleteTag(${tag.id},'${escapeHtml(tag.name)}')">🗑️</button>
         </div>`).join('');
     }
   },
@@ -1660,31 +1697,32 @@ const App = {
   async confirmRenameTag() {
     const id      = document.getElementById('rename-tag-id').value;
     const newName = document.getElementById('rename-tag-input').value.trim();
-    if (!newName) { App.toast('El nombre no puede estar vacío', 'error'); return; }
+    if (!newName) { App.toast(t('validation.emptyTagName'), 'error'); return; }
     try {
       await App.put(`/tags/${id}`, { name: newName });
-      App.toast('Etiqueta renombrada ✅');
+      App.toast(t('settings.tagRenamed'));
       App.closeModal('modal-rename-tag');
       App.loadSettings();
     } catch (e) {
-      App.toast('Error: ese nombre ya existe o no es válido', 'error');
+      App.toast(t('settings.tagRenameError'), 'error');
     }
   },
 
   async deleteTag(id, name) {
     const confirmed = await App.confirmDialog.show({
       icon: '🏷️',
-      title: `Eliminar etiqueta "${name}"`,
-      message: `Se eliminará de todos los artículos que la tengan.`,
-      confirmText: 'Eliminar', danger: true
+      message: t('settings.deleteTagTitle', name),
+      submessage: t('settings.deleteTagMessage'),
+      okLabel: t('common.delete'),
+      okClass: 'btn-danger'
     });
     if (!confirmed) return;
     try {
       await App.delete(`/tags/${id}`);
-      App.toast('Etiqueta eliminada 🗑️');
+      App.toast(t('settings.tagDeleted'));
       App.loadSettings();
     } catch (e) {
-      App.toast('Error eliminando etiqueta', 'error');
+      App.toast(t('settings.tagDeleteError'), 'error');
     }
   },
 
@@ -1693,7 +1731,7 @@ const App = {
     const raw = document.getElementById('settings-platforms').value;
     const platforms = raw.split('\n').map(p => p.trim()).filter(p => p.length > 0);
     if (platforms.length === 0) {
-      App.showFeedback('settings-feedback', '⚠️ Añade al menos una plataforma', 'error');
+      App.showFeedback('settings-feedback', t('settings.addAtLeastOnePlatform'), 'error');
       return;
     }
 
@@ -1701,8 +1739,8 @@ const App = {
     const balanceEl  = document.getElementById('settings-balance');
     const currencyEl = document.getElementById('settings-currency');
     let ok = true;
-    ok = V.requireNonNegative(balanceEl,  'El saldo inicial') && ok;
-    ok = V.requireText(currencyEl,        'La moneda')        && ok;
+    ok = V.requireNonNegative(balanceEl,  t('form.initialBalance')) && ok;
+    ok = V.requireText(currencyEl,        t('settings.currency'))    && ok;
     if (!ok) return;
 
     try {
@@ -1730,9 +1768,9 @@ const App = {
       saveVisibleCols(visibleCols);
       applyVisibleCols();
 
-      App.toast('Ajustes guardados ✅');
+      App.toast(t('settings.saveSuccess'));
     } catch (e) {
-      App.showFeedback('settings-feedback', 'Error guardando ajustes', 'error');
+      App.showFeedback('settings-feedback', t('settings.saveError'), 'error');
     }
   },
 
@@ -1748,7 +1786,7 @@ const App = {
     const formData = new FormData();
     formData.append('file', file);
 
-    App.toast('Importando...');
+    App.toast(t('import.loading'));
     try {
       const r = await fetch('/api/import/excel', { method: 'POST', body: formData });
       const data = await r.json();
@@ -1762,24 +1800,24 @@ const App = {
         const list = document.getElementById('import-errors-list');
 
         const summary = `<div class="import-errors-summary">
-          ⛔ ${errors.length} error${errors.length !== 1 ? 'es' : ''} encontrado${errors.length !== 1 ? 's' : ''}
+          ⛔ ${t('common.errorsFound', errors.length, errors.length !== 1 ? 'es' : '', errors.length !== 1 ? 's' : '')}
         </div>`;
 
         const rows = errors.length
           ? errors.map(e => `
               <div class="import-error-row">
-                <span class="err-fila">Fila ${e.fila}</span>
+                <span class="err-fila">${t('common.row', e.fila)}</span>
                 <span class="err-col">${e.columna}</span>
                 <span class="err-msg">${escapeHtml(e.motivo)}</span>
-                ${e.valor ? `<span class="err-val">Valor recibido: "${escapeHtml(e.valor)}"</span>` : ''}
+                ${e.valor ? `<span class="err-val">${escapeHtml(t('common.receivedValue', e.valor))}</span>` : ''}
               </div>`).join('')
-          : `<div class="import-error-row"><span class="err-msg" style="grid-column:1/-1">${escapeHtml(data.error || 'Error desconocido')}</span></div>`;
+          : `<div class="import-error-row"><span class="err-msg" style="grid-column:1/-1">${escapeHtml(data.error || t('common.unknownError'))}</span></div>`;
 
         list.innerHTML = summary + rows;
         App.openModal('modal-import-errors');
       }
     } catch (e) {
-      App.toast('Error de conexión al importar', 'error');
+      App.toast(t('import.connectionError'), 'error');
     }
   },
 
@@ -1871,7 +1909,7 @@ App.confirmDialog = {
 
 
 function fmt(n) {
-  if (n === null || n === undefined) return '—';
+  if (n === null || n === undefined) return t('common.none');
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: _currency }).format(n);
 }
 
@@ -1882,11 +1920,20 @@ function fmtDate(d) {
 function typeBadge(type) {
   const map = { Console: ['badge-console','🎮'], VideoGame: ['badge-game','💿'], Accessory: ['badge-accessory','🔌'] };
   const [cls, icon] = map[type] || ['badge','?'];
-  return `<span class="badge ${cls}">${icon} ${type==='Console'?'Consola':type==='VideoGame'?'Juego':'Accesorio'}</span>`;
+  const label = type === 'Console'
+    ? t('status.console')
+    : type === 'VideoGame'
+      ? t('status.game')
+      : t('status.accessory');
+  return `<span class="badge ${cls}">${icon} ${label}</span>`;
 }
 
 function condBadge(cond) {
-  const map = { New: ['badge-sold','✨ Nuevo'], Used: ['badge-stock','📦 Usado'], NeedsRepair: ['badge-repair','🔧 Reparar'] };
+  const map = {
+    New: ['badge-sold', t('status.new')],
+    Used: ['badge-stock', t('status.used')],
+    NeedsRepair: ['badge-repair', t('status.needsRepair')]
+  };
   const [cls, label] = map[cond] || ['badge', cond];
   return `<span class="badge ${cls}">${label}</span>`;
 }
@@ -1976,16 +2023,16 @@ App.tags = {
   showSuggestions(prefix, val, matches) {
     const box = document.getElementById(`${prefix}-tag-suggestions`);
     if (!box) return;
-    const items = matches.map(t =>
-      `<div class="tag-suggestion-item" onclick="App.tags.add('${prefix}','${escapeHtml(t.name)}')">
-         ${tagPillReadonly(t.name)}
-         <span class="tag-suggestion-count">${t.itemCount} art.</span>
+    const items = matches.map(tag =>
+      `<div class="tag-suggestion-item" onclick="App.tags.add('${prefix}','${escapeHtml(tag.name)}')">
+         ${tagPillReadonly(tag.name)}
+         <span class="tag-suggestion-count">${t('common.articleCount', tag.itemCount, tag.itemCount !== 1 ? 's' : '')}</span>
        </div>`
     );
     const exactExists = _allTags.some(t => t.name === val);
     if (!exactExists && val) {
       items.push(`<div class="tag-suggestion-item" onclick="App.tags.add('${prefix}','${escapeHtml(val)}')">
-        <span style="color:var(--accent);font-size:0.8rem">+ Crear "<strong>${escapeHtml(val)}</strong>"</span>
+        <span style="color:var(--accent);font-size:0.8rem">${t('common.createTag', `<strong>${escapeHtml(val)}</strong>`)}</span>
        </div>`);
     }
     box.innerHTML = items.join('');

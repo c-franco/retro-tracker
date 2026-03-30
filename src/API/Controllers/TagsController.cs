@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
 using RetroGameTracker.DTOs;
+using RetroGameTracker.Resources;
 
 namespace RetroGameTracker.Controllers;
 
@@ -38,11 +39,11 @@ public class TagsController : ControllerBase
 
         var normalized = req.Name.Trim().ToLower();
         if (string.IsNullOrEmpty(normalized))
-            return BadRequest(new { error = "El nombre no puede estar vacío." });
+            return BadRequest(new { error = AppText.Get("backend.tags.emptyName") });
 
         // Verificar que no exista otro tag con ese nombre
         if (await _db.Tags.AnyAsync(t => t.Name == normalized && t.Id != id))
-            return Conflict(new { error = $"Ya existe una etiqueta con el nombre '{normalized}'." });
+            return Conflict(new { error = AppText.Format("backend.tags.duplicateName", normalized) });
 
         tag.Name = normalized;
         await _db.SaveChangesAsync();

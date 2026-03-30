@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
+using RetroGameTracker.Resources;
 using RetroGameTracker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "Retro Tracker API", Version = "v1" });
+    c.SwaggerDoc("v1", new() { Title = AppText.Get("backend.swagger.title"), Version = "v1" });
 });
 
 // Base de datos SQLite
@@ -52,7 +53,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Fallback para SPA
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile(AppText.Get("backend.fallback.index"));
 
 // ── Migración y seed automáticos ──────────────────────────
 using (var scope = app.Services.CreateScope())

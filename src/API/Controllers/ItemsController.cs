@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RetroGameTracker.DTOs;
+using RetroGameTracker.Resources;
 using RetroGameTracker.Services;
 
 namespace RetroGameTracker.Controllers;
@@ -55,14 +56,14 @@ public class ItemsController : ControllerBase
     public async Task<IActionResult> Sell(int id, [FromBody] SellItemRequest req)
     {
         var item = await _service.SellAsync(id, req);
-        return item == null ? NotFound(new { error = "Artículo no encontrado o ya vendido" }) : Ok(item);
+        return item == null ? NotFound(new { error = AppText.Get("backend.items.notFoundOrSold") }) : Ok(item);
     }
 
     [HttpPost("{id}/unsell")]
     public async Task<IActionResult> Unsell(int id)
     {
         var item = await _service.UnsellAsync(id);
-        return item == null ? NotFound(new { error = "Artículo no encontrado o no está vendido" }) : Ok(item);
+        return item == null ? NotFound(new { error = AppText.Get("backend.items.notFoundOrNotSold") }) : Ok(item);
     }
 
     [HttpDelete("{id}")]

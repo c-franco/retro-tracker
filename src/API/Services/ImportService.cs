@@ -2,6 +2,7 @@ using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
 using RetroGameTracker.Models;
+using RetroGameTracker.Resources;
 
 namespace RetroGameTracker.Services;
 
@@ -48,13 +49,14 @@ public class ImportService
 
         using var wb = new XLWorkbook(fileStream);
 
-        if (!wb.Worksheets.Contains("Inventario"))
+        var inventorySheetName = AppText.Get("backend.export.inventorySheet");
+        if (!wb.Worksheets.Contains(inventorySheetName))
             return new ImportResult(false, 0, new List<ImportError>
             {
-                new(0, "Hoja", "", "No se encontró la hoja 'Inventario' en el archivo Excel.")
+                new(0, AppText.Get("backend.import.sheetColumn"), string.Empty, AppText.Get("backend.import.sheetNotFound"))
             });
 
-        var ws = wb.Worksheet("Inventario");
+        var ws = wb.Worksheet(inventorySheetName);
 
         // Verificar cabeceras
         var expectedHeaders = ExportService.InventoryHeaders;
@@ -65,9 +67,7 @@ public class ImportService
             if (!string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase))
                 return new ImportResult(false, 0, new List<ImportError>
                 {
-                    new(1, $"Columna {col}", actual,
-                        $"Cabecera incorrecta. Se esperaba '{expected}' pero se encontró '{actual}'. " +
-                        "Usa el Excel exportado por la aplicación como plantilla.")
+                    new(1, AppText.Format("backend.import.column", col), actual, AppText.Format("backend.import.invalidHeader", expected, actual))
                 });
         }
 
@@ -97,39 +97,33 @@ public class ImportService
             var name = Get(C_NAME);
             if (string.IsNullOrWhiteSpace(name))
             {
-                errors.Add(new(rowNum, "Nombre", name, "El nombre es obligatorio."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.name"), name, AppText.Get("backend.import.requiredName")));
                 continue;
             }
 
             // ── Col 2: Tipo ──
             var typeStr = Get(C_TYPE);
             if (!Enum.TryParse<ItemType>(typeStr, true, out var itemType))
-                errors.Add(new(rowNum, "Tipo", typeStr,
-                    "Valor no válido. Debe ser: Console, VideoGame o Accessory."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.type"), typeStr, AppText.Get("backend.import.invalidType")));
 
             // ── Col 5: Condicion ──
             var condStr = Get(C_CONDITION);
             if (!Enum.TryParse<ItemCondition>(condStr, true, out var itemCondition))
-                errors.Add(new(rowNum, "Condicion", condStr,
-                    "Valor no válido. Debe ser: New, Used o NeedsRepair."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.condition"), condStr, AppText.Get("backend.import.invalidCondition")));
 
             // ── Col 10: Precio Compra ──
             if (!GetDecimal(C_PRICE, out var purchasePrice) || purchasePrice < 0)
-                errors.Add(new(rowNum, "Precio Compra", Get(C_PRICE),
-                    "Debe ser un número decimal mayor o igual a 0."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.purchasePrice"), Get(C_PRICE), AppText.Get("backend.import.invalidNonNegativeDecimal")));
 
             // ── Col 11: Envio ──
             if (!GetDecimal(C_SHIPPING, out var shippingCost) || shippingCost < 0)
-                errors.Add(new(rowNum, "Envio", Get(C_SHIPPING),
-                    "Debe ser un número decimal mayor o igual a 0."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.shipping"), Get(C_SHIPPING), AppText.Get("backend.import.invalidNonNegativeDecimal")));
 
             // ── Col 13: Fecha Compra ──
             if (!TryParseDate(row.Cell(C_PURCHASE_DATE), out var purchaseDate))
-                errors.Add(new(rowNum, "Fecha Compra", Get(C_PURCHASE_DATE),
-                    "Formato de fecha no válido. Use dd/MM/yyyy."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.purchaseDate"), Get(C_PURCHASE_DATE), AppText.Get("backend.import.invalidDate")));
             else if (purchaseDate > DateTime.UtcNow.AddDays(1))
-                errors.Add(new(rowNum, "Fecha Compra", Get(C_PURCHASE_DATE),
-                    "La fecha de compra no puede ser futura."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.purchaseDate"), Get(C_PURCHASE_DATE), AppText.Get("backend.import.futurePurchaseDate")));
 
             // ── Col 14: Vendido ──
             var soldStr = Get(C_SOLD);
@@ -139,16 +133,14 @@ public class ImportService
             bool isNotSold = soldStr.Equals("No", StringComparison.OrdinalIgnoreCase)
                           || soldStr == "0";
             if (!isSold && !isNotSold)
-                errors.Add(new(rowNum, "Vendido", soldStr,
-                    "Valor no válido. Debe ser 'Si' o 'No'."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.sold"), soldStr, AppText.Get("backend.import.invalidBoolean")));
 
             // ── Col 15: Precio Venta (obligatorio si Vendido = Si) ──
             decimal? salePrice = null;
             if (isSold)
             {
                 if (!GetDecimal(C_SALE_PRICE, out var sp) || sp <= 0)
-                    errors.Add(new(rowNum, "Precio Venta", Get(C_SALE_PRICE),
-                        "Si el artículo está vendido, el precio de venta debe ser mayor que 0."));
+                    errors.Add(new(rowNum, AppText.Get("backend.export.header.salePrice"), Get(C_SALE_PRICE), AppText.Get("backend.import.invalidSalePrice")));
                 else
                     salePrice = sp;
             }
@@ -158,11 +150,9 @@ public class ImportService
             if (isSold)
             {
                 if (!TryParseDate(row.Cell(C_SALE_DATE), out var sd))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(C_SALE_DATE),
-                        "Si el artículo está vendido, la fecha de venta debe ser válida (dd/MM/yyyy)."));
+                    errors.Add(new(rowNum, AppText.Get("backend.export.header.saleDate"), Get(C_SALE_DATE), AppText.Get("backend.import.invalidSaleDate")));
                 else if (sd > DateTime.UtcNow.AddDays(1))
-                    errors.Add(new(rowNum, "Fecha Venta", Get(C_SALE_DATE),
-                        "La fecha de venta no puede ser futura."));
+                    errors.Add(new(rowNum, AppText.Get("backend.export.header.saleDate"), Get(C_SALE_DATE), AppText.Get("backend.import.futureSaleDate")));
                 else
                     saleDate = sd;
             }
@@ -176,13 +166,11 @@ public class ImportService
                                 || collectionStr == "0"
                                 || string.IsNullOrWhiteSpace(collectionStr);
             if (!isCollection && !isNotCollection)
-                errors.Add(new(rowNum, "Coleccion", collectionStr,
-                    "Valor no válido. Debe ser 'Si' o 'No'."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.collection"), collectionStr, AppText.Get("backend.import.invalidBoolean")));
 
             // ── Validación cruzada: no puede estar vendido Y en colección ──
             if (isSold && isCollection)
-                errors.Add(new(rowNum, "Estado", $"Vendido={soldStr} / Coleccion={collectionStr}",
-                    "Un artículo no puede estar vendido y en colección al mismo tiempo."));
+                errors.Add(new(rowNum, AppText.Get("backend.export.header.state"), $"Vendido={soldStr} / Coleccion={collectionStr}", AppText.Get("backend.import.soldAndCollection")));
 
             if (errors.Any(e => e.Row == rowNum)) continue;
 
@@ -224,7 +212,7 @@ public class ImportService
         if (!itemsToInsert.Any())
             return new ImportResult(false, 0, new List<ImportError>
             {
-                new(0, "", "", "El archivo no contiene filas de datos para importar.")
+                new(0, string.Empty, string.Empty, AppText.Get("backend.import.noRows"))
             });
 
         // ── Resolver lotes ────────────────────────────────────────────────
@@ -235,7 +223,7 @@ public class ImportService
 
         // Calcular cuántos lotes existen para el siguiente número de código
         int nextLotNumber = existingLots
-            .Select(l => { int n; return int.TryParse(l.Code.Replace("LOT-", ""), out n) ? n : 0; })
+            .Select(l => { int n; return int.TryParse(l.Code.Replace(AppText.Get("backend.import.lotPrefix"), ""), out n) ? n : 0; })
             .Where(n => n > 0)
             .DefaultIfEmpty(0)
             .Max() + 1;
@@ -270,7 +258,7 @@ public class ImportService
             // 3. Crear lote nuevo
             var newCode = !string.IsNullOrWhiteSpace(lotCode)
                 ? lotCode
-                : $"LOT-{nextLotNumber++:D3}";
+                : $"{AppText.Get("backend.import.lotPrefix")}{nextLotNumber++:D3}";
 
             var newLot = new Lot
             {

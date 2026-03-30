@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
 using RetroGameTracker.DTOs;
+using RetroGameTracker.Resources;
 using RetroGameTracker.Services;
 
 namespace RetroGameTracker.Controllers;
@@ -57,9 +58,17 @@ public class ExportController : ControllerBase
     public async Task<IActionResult> ExportExcel()
     {
         var bytes = await _service.ExportItemsToExcelAsync();
-        var filename = $"inventario_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var filename = AppText.Format("backend.export.fileName", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
         return File(bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             filename);
     }
+}
+
+[ApiController]
+[Route("api/resources")]
+public class ResourcesController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult Get() => Ok(AppText.Catalog);
 }

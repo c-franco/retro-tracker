@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RetroGameTracker.Data;
 using RetroGameTracker.DTOs;
 using RetroGameTracker.Models;
+using RetroGameTracker.Resources;
 
 namespace RetroGameTracker.Services;
 
@@ -51,7 +52,7 @@ public class LotService
             .ToListAsync();
 
         var usedNumbers = existingNumbers
-            .Select(c => { int n; return int.TryParse(c.Replace("LOT-", ""), out n) ? n : 0; })
+            .Select(c => { int n; return int.TryParse(c.Replace(AppText.Get("backend.import.lotPrefix"), ""), out n) ? n : 0; })
             .Where(n => n > 0)
             .ToHashSet();
 
@@ -59,7 +60,7 @@ public class LotService
         int next = 1;
         while (usedNumbers.Contains(next)) next++;
 
-        return $"LOT-{next:D3}";
+        return $"{AppText.Get("backend.import.lotPrefix")}{next:D3}";
     }
 
     // ── Queries ─────────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ public class LotService
         if (lot == null) return false;
 
         if (lot.Items.Any(i => i.IsSold))
-            throw new InvalidOperationException("No se puede borrar un lote con artículos vendidos.");
+            throw new InvalidOperationException(AppText.Get("backend.lots.deleteWithSoldItems"));
 
         _db.Items.RemoveRange(lot.Items);
         _db.Lots.Remove(lot);

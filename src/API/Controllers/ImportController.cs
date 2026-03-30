@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RetroGameTracker.Resources;
 using RetroGameTracker.Services;
 
 namespace RetroGameTracker.Controllers;
@@ -21,11 +22,11 @@ public class ImportController : ControllerBase
     public async Task<IActionResult> ImportExcel(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest(new { error = "No se ha proporcionado ningún archivo." });
+            return BadRequest(new { error = AppText.Get("backend.import.noFile") });
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (ext != ".xlsx")
-            return BadRequest(new { error = "El archivo debe ser de tipo .xlsx" });
+            return BadRequest(new { error = AppText.Get("backend.import.invalidExtension") });
 
         using var stream = file.OpenReadStream();
         var result = await _service.ImportItemsFromExcelAsync(stream);
@@ -33,7 +34,7 @@ public class ImportController : ControllerBase
         if (!result.Success)
             return UnprocessableEntity(new
             {
-                error   = "Importación cancelada: se encontraron errores de validación.",
+                error   = AppText.Get("backend.import.validationFailed"),
                 errors  = result.Errors.Select(e => new
                 {
                     fila    = e.Row,
@@ -45,7 +46,7 @@ public class ImportController : ControllerBase
 
         return Ok(new
         {
-            message = $"Importación completada. {result.ImportedCount} artículo(s) añadidos."
+            message = AppText.Format("backend.import.completed", result.ImportedCount)
         });
     }
 }
