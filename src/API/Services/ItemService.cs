@@ -66,8 +66,13 @@ public class ItemService
         if (isCollection.HasValue)
             query = query.Where(i => i.IsCollection == isCollection.Value);
 
-        if (!string.IsNullOrEmpty(search))
-            query = query.Where(i => i.Name.ToLower().Contains(search.ToLower()));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+            query = query.Where(i =>
+                i.Name.ToLower().Contains(normalizedSearch) ||
+                (i.Lot != null && i.Lot.Code.ToLower().Contains(normalizedSearch)));
+        }
 
         // Filtro por tags: el artículo debe tener TODOS los tags indicados
         if (tags != null && tags.Count > 0)
