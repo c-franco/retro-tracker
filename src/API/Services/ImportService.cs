@@ -48,6 +48,9 @@ public class ImportService
         var itemsToInsert = new List<(Item Item, string LotCode, string LotName, string? LotNotes, List<string> Tags)>();
 
         using var wb = new XLWorkbook(fileStream);
+        var importedInitialBalance = TryReadInitialBalance(wb, out var initialBalance)
+            ? initialBalance
+            : (decimal?)null;
 
         var inventorySheetName = AppText.Get("backend.export.inventorySheet");
         if (!wb.Worksheets.Contains(inventorySheetName))
@@ -287,6 +290,14 @@ public class ImportService
         _db.Items.AddRange(itemsToInsert.Select(t => t.Item));
         await _db.SaveChangesAsync();
 
+        if (importedInitialBalance.HasValue)
+        {
+            var settings = await _db.AppSettings.FirstAsync();
+            settings.InitialBalance = importedInitialBalance.Value;
+            settings.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+
         // ── Asignar etiquetas sin duplicados ─────────────────────────────
         var existingTags = await _db.Tags.ToListAsync();
         var tagMap       = existingTags.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
@@ -349,6 +360,62 @@ public class ImportService
 
         result = default;
         return false;
+    }
+
+    private static bool TryReadInitialBalance(XLWorkbook workbook, out decimal initialBalance)
+    {
+        initialBalance = default;
+
+        var summarySheetName = AppText.Get("backend.export.summarySheet");
+        if (!workbook.Worksheets.Contains(summarySheetName))
+            return false;
+
+        var summarySheet = workbook.Worksheet(summarySheetName);
+        var lastRow = summarySheet.LastRowUsed()?.RowNumber() ?? 0;
+        var initialBalanceLabel = AppText.Get("backend.export.summary.initialBalance");
+
+        for (var row = 1; row <= lastRow; row++)
+        {
+            var concept = summarySheet.Cell(row, 1).GetString().Trim();
+            if (!string.Equals(concept, initialBalanceLabel, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return TryParseDecimal(summarySheet.Cell(row, 2), out initialBalance);
+        }
+
+        return false;
+    }
+
+    private static bool TryParseDecimal(IXLCell cell, out decimal value)
+    {
+        try
+        {
+            value = (decimal)cell.Value.GetNumber();
+            return true;
+        }
+        catch
+        {
+            var raw = cell.GetString().Trim();
+            if (decimal.TryParse(
+                raw,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out value))
+            {
+                return true;
+            }
+
+            if (decimal.TryParse(
+                raw,
+                System.Globalization.NumberStyles.Any,
+                new System.Globalization.CultureInfo("es-ES"),
+                out value))
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }
 

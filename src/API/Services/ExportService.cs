@@ -148,7 +148,7 @@ public class ExportService
         // Tercera hoja: Resumen financiero
         var wsSummary = wb.Worksheets.Add(AppText.Get("backend.export.summarySheet"));
         var settings  = await _db.AppSettings.FirstAsync();
-        decimal totalInvested = items.Where(i => !i.IsCollection).Sum(i => i.TotalCost);
+        decimal totalInvested = items.Sum(i => i.TotalCost);
         decimal totalRevenue  = items.Where(i => i.IsSold).Sum(i => i.SalePrice ?? 0);
         decimal totalProfit   = totalRevenue - totalInvested;
 
