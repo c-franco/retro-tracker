@@ -6,7 +6,7 @@ public static class AppText
 {
     public static IReadOnlyDictionary<string, string> Catalog { get; } = new Dictionary<string, string>
     {
-        ["meta.title"] = "Retro Tracker",
+        ["meta.title"] = "🕹️ Retro Tracker",
 
         ["common.none"] = "—",
         ["common.articleCount"] = "{0} artículo{1}",
