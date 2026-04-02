@@ -31,7 +31,7 @@ function t(key, ...args) {
 }
 
 function applyStaticTexts() {
-  document.title = t('meta.title');
+  document.title = t('meta.pageTitle');
 
   document.querySelectorAll('[data-text]').forEach(el => {
     el.textContent = t(el.dataset.text);
