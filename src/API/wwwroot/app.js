@@ -1023,7 +1023,9 @@ const App = {
 
     tbody.innerHTML = lots.map(lot => {
       const profitCls = lot.totalProfit >= 0 ? 'positive' : 'negative';
-      const pct = lot.totalItems > 0 ? Math.round(lot.soldItems / lot.totalItems * 100) : 0;
+      const collectionItems = lot.collectionItems ?? 0;
+      const pctSold       = lot.totalItems > 0 ? Math.round(lot.soldItems      / lot.totalItems * 100) : 0;
+      const pctCollection = lot.totalItems > 0 ? Math.round(collectionItems    / lot.totalItems * 100) : 0;
       return `<tr>
         <td><span class="badge badge-lot-code">${escapeHtml(lot.code)}</span></td>
         <td class="neutral" style="font-size:0.78rem;white-space:nowrap">${fmtDate(lot.purchaseDate)}</td>
@@ -1032,7 +1034,10 @@ const App = {
         <td>
           <div class="lots-progress">
             <span>${lot.totalItems}</span>
-            <div class="lots-progress-bar"><div class="lots-progress-fill" style="width:${pct}%"></div></div>
+            <div class="lots-progress-bar">
+              <div class="lots-progress-fill lots-progress-sold"       style="width:${pctSold}%"></div>
+              <div class="lots-progress-fill lots-progress-collection" style="width:${pctCollection}%"></div>
+            </div>
             <span style="font-size:0.72rem;color:var(--text3)">${t('lots.soldShort', lot.soldItems)}</span>
           </div>
         </td>

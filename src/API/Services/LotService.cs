@@ -23,6 +23,8 @@ public class LotService
         var realShippingCost  = items.Sum(i => i.ShippingCost);
         var realTotalCost     = realPurchasePrice + realShippingCost;
 
+        var collectionItems = items.Count(i => !i.IsSold && i.IsCollection);
+
         return new LotDto(
             lot.Id,
             lot.Code,
@@ -34,7 +36,8 @@ public class LotService
             realTotalCost,
             items.Count,
             soldItems.Count,
-            items.Count(i => !i.IsSold),
+            items.Count(i => !i.IsSold && !i.IsCollection),
+            collectionItems,
             soldItems.Sum(i => i.SalePrice ?? 0),
             soldItems.Sum(i => i.Profit ?? 0),
             items.Select(ItemService.ToDto).ToList()

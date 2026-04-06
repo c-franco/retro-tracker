@@ -80,6 +80,7 @@ public record LotDto(
     int TotalItems,
     int SoldItems,
     int StockItems,
+    int CollectionItems,
     decimal TotalRevenue,
     decimal TotalProfit,
     List<ItemDto> Items

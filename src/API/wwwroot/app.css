@@ -1035,6 +1035,7 @@ select.field-error option {
   font-size: 0.82rem;
   color: var(--text2);
 }
+
 .lots-progress-bar {
   width: 44px;
   height: 4px;
@@ -1042,12 +1043,22 @@ select.field-error option {
   border-radius: 2px;
   overflow: hidden;
   flex-shrink: 0;
+  display: flex;
 }
+
 .lots-progress-fill {
   height: 100%;
-  background: var(--accent);
   border-radius: 2px;
-  min-width: 2px;
+}
+
+.lots-progress-sold {
+  background: var(--accent);
+  min-width: 0;
+}
+
+.lots-progress-collection {
+  background: var(--accent3);
+  min-width: 0;
 }
 
 /* ── LOT DETAIL MODAL ── */
