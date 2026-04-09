@@ -30,6 +30,24 @@ public class TagsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Crea un tag nuevo (sin artículos asignados)</summary>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] RenameTagRequest req)
+    {
+        var normalized = req.Name.Trim().ToLower();
+        if (string.IsNullOrEmpty(normalized))
+            return BadRequest(new { error = AppText.Get("backend.tags.emptyName") });
+
+        if (await _db.Tags.AnyAsync(t => t.Name == normalized))
+            return Conflict(new { error = AppText.Format("backend.tags.duplicateName", normalized) });
+
+        var tag = new RetroGameTracker.Models.Tag { Name = normalized };
+        _db.Tags.Add(tag);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetAll), new TagDto(tag.Id, tag.Name, 0));
+    }
+
     /// <summary>Renombra un tag existente</summary>
     [HttpPut("{id}")]
     public async Task<IActionResult> Rename(int id, [FromBody] RenameTagRequest req)
@@ -41,7 +59,6 @@ public class TagsController : ControllerBase
         if (string.IsNullOrEmpty(normalized))
             return BadRequest(new { error = AppText.Get("backend.tags.emptyName") });
 
-        // Verificar que no exista otro tag con ese nombre
         if (await _db.Tags.AnyAsync(t => t.Name == normalized && t.Id != id))
             return Conflict(new { error = AppText.Format("backend.tags.duplicateName", normalized) });
 

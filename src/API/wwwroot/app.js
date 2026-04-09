@@ -1674,20 +1674,53 @@ const App = {
 
     // Cargar lista de etiquetas
     await loadTagsCache();
+    App._renderSettingsTags();
+  },
+
+  _renderSettingsTags() {
     const list  = document.getElementById('settings-tags-list');
     const empty = document.getElementById('settings-tags-empty');
+
+    // Formulario de creación (siempre visible encima de la lista)
+    const createForm = `
+      <div class="settings-tag-create" id="settings-tag-create-row">
+        <input type="text" id="settings-new-tag-input"
+               placeholder="${t('settings.tagNewPlaceholder')}"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();App.createTag();}"
+               style="flex:1;min-width:0" />
+        <button class="btn-sm" onclick="App.createTag()" style="white-space:nowrap;flex-shrink:0">
+          + ${t('settings.tagCreate')}
+        </button>
+      </div>`;
+
     if (!_allTags.length) {
-      list.innerHTML = '';
+      list.innerHTML = createForm;
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
-      list.innerHTML = _allTags.map(tag => `
+      list.innerHTML = createForm + _allTags.map(tag => `
         <div class="settings-tag-row" id="settings-tag-${tag.id}">
           ${tagPillReadonly(tag.name)}
           <span class="tag-count">${t('common.articleCount', tag.itemCount, tag.itemCount !== 1 ? 's' : '')}</span>
           <button class="btn-icon" title="${t('common.rename')}" onclick="App.renameTag(${tag.id},'${escapeHtml(tag.name)}')">✏️</button>
           <button class="btn-icon" title="${t('common.delete')}"  onclick="App.deleteTag(${tag.id},'${escapeHtml(tag.name)}')">🗑️</button>
         </div>`).join('');
+    }
+  },
+
+  async createTag() {
+    const input = document.getElementById('settings-new-tag-input');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+      await App.post('/tags', { name });
+      App.toast(t('settings.tagCreated'));
+      input.value = '';
+      await loadTagsCache();
+      App._renderSettingsTags();
+    } catch (e) {
+      App.toast(t('settings.tagCreateError'), 'error');
     }
   },
 
@@ -1714,7 +1747,8 @@ const App = {
       await App.put(`/tags/${id}`, { name: newName });
       App.toast(t('settings.tagRenamed'));
       App.closeModal('modal-rename-tag');
-      App.loadSettings();
+      await loadTagsCache();
+      App._renderSettingsTags();
     } catch (e) {
       App.toast(t('settings.tagRenameError'), 'error');
     }
@@ -1732,7 +1766,8 @@ const App = {
     try {
       await App.delete(`/tags/${id}`);
       App.toast(t('settings.tagDeleted'));
-      App.loadSettings();
+      await loadTagsCache();
+      App._renderSettingsTags();
     } catch (e) {
       App.toast(t('settings.tagDeleteError'), 'error');
     }

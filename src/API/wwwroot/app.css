@@ -917,6 +917,14 @@ select.field-error option {
 .settings-tag-row .tag-count { font-size:0.75rem; color:var(--text3); flex:1; }
 .settings-tag-row .btn-icon { font-size:0.8rem; }
 
+/* Formulario de creación de etiqueta en ajustes */
+.settings-tag-create {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
 /* ── IMPORT ERRORS MODAL ── */
 .import-errors-list {
   max-height: 420px;

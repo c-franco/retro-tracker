@@ -204,12 +204,10 @@ public class ItemService
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();
 
-        // Limpiar tags huérfanos (sin ningún artículo asociado)
-        var orphans = await _db.Tags
-            .Where(t => !t.ItemTags.Any())
-            .ToListAsync();
-        _db.Tags.RemoveRange(orphans);
-        await _db.SaveChangesAsync();
+        // No se eliminan tags huérfanos automáticamente.
+        // Los tags creados manualmente desde Ajustes deben persistir
+        // aunque no tengan artículos asignados.
+        // El usuario puede gestionarlos desde Ajustes > Etiquetas.
 
         return true;
     }
@@ -218,7 +216,8 @@ public class ItemService
 
     /// <summary>
     /// Crea los tags que no existan, elimina los que ya no están en la lista,
-    /// y añade los nuevos. Limpia tags huérfanos (sin artículos).
+    /// y añade los nuevos. No elimina tags huérfanos para preservar los creados
+    /// manualmente desde Ajustes.
     /// </summary>
     private async Task SyncTagsAsync(Item item, List<string> tagNames)
     {
@@ -259,13 +258,6 @@ public class ItemService
             _db.ItemTags.Add(new ItemTag { ItemId = item.Id, TagId = tag.Id });
         }
 
-        await _db.SaveChangesAsync();
-
-        // Limpiar tags huérfanos (sin ningún artículo asociado)
-        var orphans = await _db.Tags
-            .Where(t => !t.ItemTags.Any())
-            .ToListAsync();
-        _db.Tags.RemoveRange(orphans);
         await _db.SaveChangesAsync();
 
         // Recargar la colección en memoria
